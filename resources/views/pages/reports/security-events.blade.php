@@ -102,8 +102,8 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>Threat Level</th>
-                                            <th>Threat Name</th>
-                                            <th>Threat Category</th>
+                                            <th>Events</th>
+                                            <th>Ip Address</th>
                                             <th>Date Detected</th>
                                             <th>Action</th>
                                             {{-- <th class="text-truncate">Status</th> --}}

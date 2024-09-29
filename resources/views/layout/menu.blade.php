@@ -48,9 +48,9 @@
             </a>
 
             <ul class="menu-sub">
-                <li class="menu-item {{ Route::currentRouteName() == 'report.incident' ? 'active' : '' }}">
-                    <a href="{{ route('report.incident') }}" class="menu-link">
-                        <div class="text-truncate" data-i18n="Incident reports">Incident Reports</div>
+                <li class="menu-item {{ Route::currentRouteName() == 'report.security' ? 'active' : '' }}">
+                    <a href="{{ route('report.security') }}" class="menu-link">
+                        <div class="text-truncate" data-i18n="Incident reports">Security Events</div>
                     </a>
                 </li>
                 <li class="menu-item {{ Route::currentRouteName() == 'report.manage' ? 'active' : '' }}">

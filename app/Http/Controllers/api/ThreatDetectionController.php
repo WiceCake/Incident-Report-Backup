@@ -18,7 +18,7 @@ class ThreatDetectionController extends Controller
     public function logged_in()
     {
         $urls = [
-            "http://localhost:9200/filebeat-7.14.0/_search"
+            "http://hp.test:9200/filebeat-7.14.0/_search"
         ];
 
         $logs = collect($this->getLogs($urls[0]));
@@ -40,7 +40,7 @@ class ThreatDetectionController extends Controller
     public function logged_in_attempt()
     {
         $urls = [
-            "http://localhost:9200/join_logs/_search",
+            "http://hp.test:9200/join_logs/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -67,8 +67,8 @@ class ThreatDetectionController extends Controller
     public function hp_events(Request $request)
     {
         $urls = [
-            "http://localhost:9200/join_logs/_search",
-            "http://localhost:9200/filebeat-7.14.0/_search"
+            "http://hp.test:9200/join_logs/_search",
+            "http://hp.test:9200/filebeat-7.14.0/_search"
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -104,7 +104,7 @@ class ThreatDetectionController extends Controller
     public function devices(Request $request)
     {
 
-        $url = "http://localhost:9200/join_logs/_search";
+        $url = "http://hp.test:9200/join_logs/_search";
 
         $response = Http::get($url, [
             'query' => [
@@ -136,44 +136,123 @@ class ThreatDetectionController extends Controller
     public function weeklyDetection()
     {
         $urls = [
-            "http://localhost:9200/filebeat-7.14.0/_search"
+            "http://hp.test:9200/join_logs/_search",
+            "http://hp.test:9200/filebeat-7.14.0/_search"
         ];
 
-        $logs = $this->getLogs($urls[0]);
+        $hp_logs = $this->getLogs($urls[0]);
+        $modsec_logs = $this->getLogs($urls[1]);
 
-        $filtered_logs = collect($logs['hits']->hits)->unique(function ($data) {
+        // return $hp_logs;
+
+        $hp_logs = collect($hp_logs['hits']->hits)
+            // Group by date first to avoid processing the same date multiple times
+            ->groupBy(function ($data) {
+                $date = new DateTime($data->_source->timestamp);
+                return $date->format('Y-m-d');
+            })
+            // Now process each date group
+            ->map(function ($logs, $dateKey) {
+                $date = new DateTime($dateKey);
+                $dayOfMonth = $date->format('j');
+                $firstDayOfMonth = $date->format('Y-m-01');
+                $weekOfMonth = ceil(($dayOfMonth + date('w', strtotime($firstDayOfMonth)) - 1) / 7);
+
+                $content = collect($logs)->filter(function ($data) use ($date) {
+                    $get_date = new DateTime($data->_source->timestamp);
+                    return $get_date->format('Y-m-d') == $date->format('Y-m-d');
+                })->values()
+                    ->map(function ($data) {
+                        $hasUserCookie = $data->_source->user_cookie ?? '';
+                        if ($hasUserCookie) {
+                            return $data->_id;
+                        }
+                        return null;
+                    })->filter()->values();
+
+                return [
+                    "date" => $date->format('Y-m-d'),
+                    "day" => $date->format('D'),
+                    "month" => $date->format('M'),
+                    "week_of_the_month" => $weekOfMonth,
+                    "content" => $content
+                ];
+
+                return null;
+            })
+            ->filter() // Remove any null values
+            ->values(); // Re-index the collection
+
+
+        $modsec_logs = collect($modsec_logs['hits']->hits)->unique(function ($data) {
             $date = new DateTime($data->_source->{'@timestamp'});
             return $date->format('Y-m-d');
-        })->values()->map(function ($data) use ($logs) {
+        })->values()->map(function ($data) use ($modsec_logs) {
             $date = new DateTime($data->_source->{'@timestamp'});
             $dayOfMonth = $date->format('j');
             $firstDayOfMonth = $date->format('Y-m-01');
             $weekOfMonth = ceil(($dayOfMonth + date('w', strtotime($firstDayOfMonth)) - 1) / 7);
+
+            $content = collect($modsec_logs['hits']->hits)->filter(function ($data) use ($date) {
+                $get_date = new DateTime($data->_source->{'@timestamp'});
+                return $get_date->format('Y-m-d') == $date->format('Y-m-d');
+            })->values()->map(function ($data) {
+                $dataString = json_encode($data);
+                $checker = $data->_source->transaction->messages[0]->message;
+                if ($dataString && str_contains($dataString, 'Anomaly')) {
+                    return $data->_source->agent->id;
+                }
+                return null;
+            })->filter()->values();
+
             return [
                 "date" => $date->format('Y-m-d'),
                 "day" => $date->format('D'),
                 "month" => $date->format('M'),
                 "week_of_the_month" => $weekOfMonth,
-                "content" => collect($logs['hits']->hits)->filter(function ($data) use ($date) {
-                    $get_date = new DateTime($data->_source->{'@timestamp'});
-                    return $get_date->format('Y-m-d') == $date->format('Y-m-d');
-                })->values()->map(function ($data) {
-                    $dataString = json_encode($data);
-                    $checker = $data->_source->transaction->messages[0]->message;
-                    if ($dataString && str_contains($dataString, 'Anomaly')) {
-                        return $data->_source->agent->id;
-                    }
-                    return null;
-                })->filter()->values()
+                "content" => $content
             ];
         });
 
-        return $filtered_logs;
+        $merged_logs = $hp_logs->map(function ($log) use ($modsec_logs) {
+            // Normalize the date format for both logs
+            $log_date = (new DateTime($log['date']))->format('Y-m-d');
+
+            // Find the matching log by normalized date
+            $matching_log = $modsec_logs->first(function ($modsec_log) use ($log_date) {
+                return (new DateTime($modsec_log['date']))->format('Y-m-d') === $log_date;
+            });
+
+            if ($matching_log) {
+                // Merge the content arrays
+                $log['content'] = collect($log['content'])
+                    ->merge($matching_log['content'])
+                    ->values();
+            }
+
+            return $log;
+        });
+
+        // Find logs in modsec_logs that have no match in hp_logs
+        $modsec_logs_only = $modsec_logs->reject(function ($modsec_log) use ($hp_logs) {
+            $modsec_date = (new DateTime($modsec_log['date']))->format('Y-m-d');
+            return $hp_logs->contains(function ($log) use ($modsec_date) {
+                return (new DateTime($log['date']))->format('Y-m-d') === $modsec_date;
+            });
+        });
+
+        // Merge all logs together
+        $final_merged_logs = $merged_logs->merge($modsec_logs_only);
+
+        // Sort the final logs by date and re-index
+        $final_merged_logs = $final_merged_logs->sortByDesc('date')->values();
+
+        return $final_merged_logs;
     }
 
     public function userCookies()
     {
-        $url = "http://localhost:9200/join_logs/_search";
+        $url = "http://hp.test:9200/join_logs/_search";
 
         $response = Http::get($url, [
             'query' => [
@@ -208,20 +287,64 @@ class ThreatDetectionController extends Controller
     public function allThreats(Request $request)
     {
         $urls = [
-            "http://localhost:9200/join_logs/_search",
-            "http://localhost:9200/filebeat-7.14.0/_search",
-            "http://localhost/api/decrypt",
+            "http://hp.test:9200/join_logs/_search",
+            "http://hp.test:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
         $modsec_logs = $this->getLogs($urls[1]);
 
-        $getCookies = collect($hp_logs['hits']->hits)->filter(function ($data) {
-            $check_cookies =  $data->_source->user_cookies ?? null;
-            return $check_cookies;
-        })->unique('_source.user_cookies')->pluck('_source.user_cookies')->values();
+        $getData = collect($hp_logs['hits']->hits)->map(function ($data) {
+            $hasIPAddress = $data->_source->user_ip ?? null;
+            $hasUserCookie = $data->_source->user_cookies ?? null;
 
-        $logs = collect($modsec_logs['hits']->hits)->map(function ($data) use ($getCookies, $urls) {
+            if ($hasIPAddress && $hasUserCookie) {
+                return $data->_source;
+            }
+
+            return null;
+        })->filter()->unique('user_cookies')->values();
+
+
+        $hp_logs = collect($hp_logs['hits']->hits)->map(function ($data) use ($getData) {
+            $hasUserCookie = $data->_source->user_cookie ?? '';
+            $hasEvent = $data->_source->event ?? null;
+
+            $getData = $getData->map(function ($data) use ($hasUserCookie) {
+                if ($hasUserCookie == $data->user_cookies) {
+                    return $data;
+                }
+                return null;
+            })->filter()->values();
+
+            if ($hasUserCookie && $hasEvent) {
+
+                $getData = $getData->first();
+
+                return [
+                    "threat_id" => $data->_id,
+                    "threat_level" => "Low",
+                    "threat" => $data->_source->event . ' on Honeypot' ?? null,
+                    "threat_category" => "Not Available",
+                    "timestamp" => $data->_source->timestamp,
+                    "ip_address" => $getData->user_ip,
+                    "action" => 1,
+                    "others" => [
+                        "cookies" => $hasUserCookie,
+                        "btn_name" => $data->_source->btn_name ?? null,
+                        "user_agent" => $getData->user_agent,
+                        "url" => $getData->current_url,
+                        "referrer_url" => $getData->referrer_url,
+                        "device" => $getData->device,
+                    ]
+                ];
+            }
+
+            return null;
+        })->filter()->values();
+
+
+        $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
             $dataString = json_encode($data);
 
             // Check if the word "anomaly" exists anywhere in the $data object
@@ -230,64 +353,68 @@ class ThreatDetectionController extends Controller
                 $cookie_value = "";
                 $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
 
+
                 if (Str::contains($check_header, 'hp_cookie') && $check_header) {
                     $check_header = explode("; ", $check_header);
                     $cookie = explode("=", $check_header[0]);
                     $cookie = $cookie[1];
-
-                    $cookie = Crypt::decrypt($cookie);
-
-                    // foreach ($getCookies as $cookies) {
-                    //     $getData = $this->getApi($urls[2] . "/$cookie");
-                    //     if ($getData[0] == $cookies) {
-                    //         $cookie_value = $cookies;
-                    //         break;
-                    //     }
-                    //     $cookie_value = 'No Cookie';
-                    // }
-
-                }else{
+                    $cookie_value = $cookie;
+                } else {
                     $cookie_value = 'No Cookies';
                 }
 
-
-
                 $anomalyScore = $this->getAnomalyScore($data);
-                $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS'];
+                $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage'];
 
                 $threatNames = collect($data->_source->transaction->messages)
                     ->pluck('message')
                     ->filter(function ($message) use ($attackKeywords) {
+
                         // Check if the message contains any attack-related keyword
                         foreach ($attackKeywords as $keyword) {
                             if (str_contains($message, $keyword)) {
                                 return true;
                             }
                         }
+
                         return false;
                     })->values();
 
+                $url = $data->_source->transaction->request;
+
+                $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
 
                 return [
                     "threat_id" => $data->_id,
                     "threat_level" => $anomalyScore,
                     "threat" => $threatNames->implode(', '),
+                    // "threat_data" => $data->_source->transaction->messages,
                     "threat_category" => "Not Available",
                     "timestamp" => $data->_source->{'@timestamp'},
+                    "ip_address" => $data->_source->transaction->client_ip,
                     "action" => 1,
                     "others" => [
-                        "cookies" => 'No cookies'
+                        "cookies" => $cookie_value,
+                        "btn_name" => null,
+                        "user_agent" => $data->_source->transaction->request->headers->{'User-Agent'},
+                        "url" => "http://" . $url->headers->Host . $url->uri,
+                        "referrer_url" => "http://" . $url->headers->Host,
+                        "device" => $device
                     ]
                 ];
             }
             return null;
         })->filter()->values();
 
+        $merge_logs = $hp_logs->merge($modsec_logs);
+
+        // dd($merge_logs);
+
         return response()->json([
             'draw' => $request->draw ?? 1,
-            'recordsTotal' => $logs->count(),
-            'recordsFiltered' => $logs->count(),
-            'data' => $logs
+            'recordsTotal' => $merge_logs->count(),
+            'recordsFiltered' => $merge_logs->count(),
+            'data' => $merge_logs
         ]);
     }
 
@@ -304,7 +431,8 @@ class ThreatDetectionController extends Controller
         return collect(json_decode($logs));
     }
 
-    private function getApi($url){
+    private function getApi($url)
+    {
 
         $url = Http::get($url);
 
@@ -346,5 +474,20 @@ class ThreatDetectionController extends Controller
         }
 
         return $anomalyScore;
+    }
+
+    private function getDevice($user_agent)
+    {
+        if (Str::contains($user_agent, "Tablet")) {
+            return "Tablet";
+        }
+
+        if (Str::contains($user_agent, "Mobile")) {
+            return "Mobile";
+        }
+
+        if (Str::contains($user_agent, "Windows")) {
+            return "Desktop";
+        }
     }
 }

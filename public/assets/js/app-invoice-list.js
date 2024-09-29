@@ -5,7 +5,7 @@ table.DataTable({
         { data: 'threat_id' },        // Column 0
         { data: 'threat_level' },     // Column 1
         { data: 'threat' },           // Column 2
-        { data: 'threat_category' },  // Column 3
+        { data: 'ip_address' },  // Column 3
         { data: 'timestamp' },        // Column 4
         { data: 'action' }            // Column 5
     ],
@@ -49,7 +49,7 @@ table.DataTable({
         visible: true, // Make this visible
         orderable: false,
         render: function (a, e, t, s) {
-            return '<div class="d-flex align-items-center"><a href="/incident-reports/' + t.threat_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
+            return '<div class="d-flex align-items-center"><a href="/security-events/' + t.threat_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
         }
     }],
     order: [[4, "desc"]],

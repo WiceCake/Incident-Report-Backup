@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\SecurityEventsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function(){
@@ -15,17 +16,15 @@ Route::get('/login', function () {
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-// Incident Reports
+// Security Events
 
-Route::get('/incident-reports', function(){
-    return view('pages.reports.incident-reports');
-})->name('report.incident');
+Route::get('/security-events', [SecurityEventsController::class, 'index'])->name('report.security');
 
 Route::get('/incident-reports/create', function(){
     return view('pages.reports.incident-report.create-report');
-})->name('report.incident.create');
+})->name('report.security.create');
 
-Route::get('/incident-reports/{id}', [ReportsController::class, 'incidentIndex'])->name('report.incident.view');
+Route::get('/security-events/{id}', [SecurityEventsController::class, 'show'])->name('report.security.view');
 
 // Manage Reports
 
