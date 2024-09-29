@@ -29,12 +29,12 @@
                         <!-- Ajax Sourced Server-side -->
                         <div class="card">
                             <h5 class="card-header pb-0 text-md-start text-center">Ajax Sourced Server-side</h5>
-                            <div class="card-datatable table-responsive">
+                            <div class="card-datatable table-responsive text-nowrap">
                             <table class="invoice-list-table table border-top">
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Events</th>
+                                            <th class="text-truncate">Events</th>
                                             <th>Date Detected</th>
                                             {{-- <th class="text-truncate">Status</th> --}}
                                             {{-- <th>Invoice Status</th>

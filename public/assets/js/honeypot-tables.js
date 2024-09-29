@@ -18,6 +18,12 @@ table.DataTable({
         }
     },
     {
+        targets: 1,
+        render: function(t) {
+            return '<span class="text-wrap text-break">'+ t +'<span>'
+        }
+    },
+    {
         targets: 2, // Date Detected
         render: function (a, e, t, s) {
             const date = new Date(t.timestamp);

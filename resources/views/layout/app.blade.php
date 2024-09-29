@@ -45,6 +45,9 @@
     <!-- Page CSS -->
     @yield('page-css')
 
+    {{-- Page JS Header --}}
+    @yield('header-js')
+
     <!-- Page -->
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/pages/page-auth.css') }}" />
 

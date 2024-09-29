@@ -40,7 +40,7 @@
 
         <!-- Reports -->
         <li class="menu-item
-            @if (in_array(Route::currentRouteName(), ['report.incident', 'report.manage', 'report.all'])) active open @endif
+            @if (in_array(Route::currentRouteName(), ['report.security', 'report.incident'])) active open @endif
         ">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-error-alt"></i>
@@ -53,14 +53,9 @@
                         <div class="text-truncate" data-i18n="Incident reports">Security Events</div>
                     </a>
                 </li>
-                <li class="menu-item {{ Route::currentRouteName() == 'report.manage' ? 'active' : '' }}">
-                    <a href="{{ route('report.manage') }}" class="menu-link">
+                <li class="menu-item {{ Route::currentRouteName() == 'report.incident' ? 'active' : '' }}">
+                    <a href="{{ route('report.incident') }}" class="menu-link">
                         <div class="text-truncate" data-i18n="Manage reports">Manage Reports</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ Route::currentRouteName() == 'report.all' ? 'active' : '' }}">
-                    <a href="{{ route('report.all') }}" class="menu-link">
-                        <div class="text-truncate" data-i18n="All reports">All Reports</div>
                     </a>
                 </li>
             </ul>

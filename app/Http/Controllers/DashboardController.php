@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class DashboardController extends Controller
@@ -35,6 +36,7 @@ class DashboardController extends Controller
         ])->sortByDesc(function ($item) {
             return $item->count();
         });
+
 
         $logged_in = $this->getLogs($urls[0]);
         $logged_in_attempt = $this->getLogs($urls[1]);

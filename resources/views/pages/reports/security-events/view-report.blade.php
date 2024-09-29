@@ -1,9 +1,10 @@
 @extends('layout.app')
 
-@section('title', 'MUTI Group | ###')
+@section('title', 'MUTI Group | ' . $data->threat_id)
 
 @section('page-css')
     <link rel="stylesheet" href="../assets/vendor/css/pages/app-invoice.css" />
+
 @endsection
 
 @section('content')
@@ -34,11 +35,20 @@
 
 
                         <div class="row invoice-preview">
-                            <!-- Invoice -->
-                            <div class="col-xl-9 col-md-8 col-12 mb-md-0 mb-6">
+                            <!-- Securirity Events -->
+                            <div class="col-xl-9 col-md-8 col-12 mb-md-0 mb-6" id="securityEventsData">
                                 <div class="card invoice-preview-card p-sm-12 p-6">
                                     <div class="card-body invoice-preview-header rounded">
                                         <div>
+                                            @if ($errors->any())
+                                                <div class="alert alert-danger text-dark px-5 py-3">
+                                                    <ul class="m-0">
+                                                        @foreach ($errors->all() as $error)
+                                                            <li>{{ $error }}</li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @endif
                                             <div class="mb-4 text-heading">
                                                 <h5 class="fw-medium mb-2">ID: {{ $data->threat_id }}</h5>
                                                 <div>
@@ -52,13 +62,11 @@
                                             <div>
                                                 <div class="mb-1 text-heading">
                                                     <span>Day Issues:</span>
-                                                    <span
-                                                        class="fw-medium">{{ \Carbon\Carbon::parse($data->timestamp)->format('Y-m-d') }}</span>
+                                                    <span class="fw-medium" id="dateDataDay"></span>
                                                 </div>
                                                 <div class="text-heading">
                                                     <span>Time Issue:</span>
-                                                    <span
-                                                        class="fw-medium">{{ \Carbon\Carbon::parse($data->timestamp)->format('H:i:s') }}</span>
+                                                    <span class="fw-medium" id="dateDataTime"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -71,13 +79,13 @@
                                             <thead>
                                                 <tr>
                                                     <th>Name</th>
-                                                    <th>Description</th>
+                                                    <th class="text-truncate">Description</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Security Event Name</td>
-                                                    <td class="text-nowrap">{{ $data->threat }}</td>
+                                                    <td class="text-wrap text-break">{{ $data->threat }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Threat Level</td>
@@ -86,7 +94,7 @@
                                                 @if ($data->others->btn_name)
                                                     <tr>
                                                         <td class="text-nowrap text-heading">Button Name</td>
-                                                        <td class="text-nowrap">{{ $data->threat_level }}</td>
+                                                        <td class="text-nowrap">{{ $data->others->btn_name }}</td>
                                                     </tr>
                                                 @endif
                                                 <tr>
@@ -95,7 +103,7 @@
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Cookies</td>
-                                                    <td class="text-nowrap">{{ $data->others->cookies }}</td>
+                                                    <td class="text-wrap text-break">{{ $data->others->cookies }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Device</td>
@@ -103,15 +111,15 @@
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">User Agent</td>
-                                                    <td class="text-nowrap">{{ $data->others->user_agent }}</td>
+                                                    <td class="text-wrap text-break">{{ $data->others->user_agent }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Url</td>
-                                                    <td class="text-nowrap">{{ $data->others->url }}</td>
+                                                    <td class="text-wrap text-break">{{ $data->others->url }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Url Referrer</td>
-                                                    <td class="text-nowrap">{{ $data->others->referrer_url }}</td>
+                                                    <td class="text-wrap text-break">{{ $data->others->referrer_url }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -128,61 +136,81 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- /Invoice -->
+                            <!-- /Security Events -->
 
-                            <!-- Invoice Actions -->
+                            <!-- Security Events Actions -->
                             <div class="col-xl-3 col-md-4 col-12 invoice-actions">
                                 <div class="card">
                                     <div class="card-body">
                                         <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="offcanvas"
-                                            data-bs-target="#sendInvoiceOffcanvas">
+                                            data-bs-target="#sendInvoiceOffcanvas" onclick="changeTime()">
                                             <span class="d-flex align-items-center justify-content-center text-nowrap"><i
                                                     class="bx bx-paper-plane bx-sm me-2"></i>Create Report</span>
                                         </button>
-                                        <button class="btn btn-label-success d-grid w-100">
+                                        <button class="btn btn-label-success d-grid w-100"
+                                            onclick="printDiv(securityEventsData, '{{ $data->threat_id }}')">
                                             Download
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            <!-- /Invoice Actions -->
+                            <!-- /Security Events Actions -->
                         </div>
 
                         <!-- Offcanvas -->
-                        <!-- Send Invoice Sidebar -->
+                        <!-- Send Incident Report Sidebar -->
                         <div class="offcanvas offcanvas-end" id="sendInvoiceOffcanvas" aria-hidden="true">
+                            <div class="hidden-data d-none">
+                            </div>
                             <div class="offcanvas-header mb-6 border-bottom">
                                 <h5 class="offcanvas-title">Create Incident Report</h5>
                                 <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
                                     aria-label="Close"></button>
                             </div>
                             <div class="offcanvas-body pt-0 flex-grow-1">
-                                <form>
+                                <form method="POST" action="{{ route('report.security.create') }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="hidden" value="{{ $data->timestamp }}" id="threatTime">
+                                    <input type="hidden" value="{{ $data->threat }}" id="threatName">
+                                    <input type="hidden" value="{{ auth()->user()->username }}" name="username">
+                                    <input type="hidden" value="{{ $data->threat_id }}" name="threat_id">
                                     <div class="mb-6">
                                         <label for="invoice-from" class="form-label">From</label>
-                                        <input type="text" class="form-control" id="invoice-from" value="######" />
+                                        <input type="text" class="form-control" id="adminName" name="admin_name"
+                                            value="{{ auth()->user()->name }}" readonly />
                                     </div>
                                     <div class="mb-6">
-                                        <label for="invoice-to" class="form-label">Timestamp</label>
-                                        <input type="text" class="form-control" id="invoice-to" value="--Time--" />
+                                        <label for="invoice-to" class="form-label">Time Detected</label>
+                                        <input type="text" class="form-control" id="timestampDetected"
+                                            name="time_detected" readonly />
                                     </div>
                                     <div class="mb-6">
-                                        <label for="invoice-subject" class="form-label">Select Type of Security Events</label>
-                                        <select class="form-select" aria-label="Default select example">
-                                            <option value="1">Honeypot Interaction</option>
-                                            <option value="2">Web Threat Attack</option>
+                                        <label for="invoice-to" class="form-label">Time Issued</label>
+                                        <input type="text" class="form-control" id="timestampIssue"
+                                            name="time_issued" readonly />
+                                    </div>
+                                    <div class="mb-6">
+                                        <label for="invoice-subject" class="form-label">Select Type of Security
+                                            Events</label>
+                                        <select class="form-select" aria-label="Default select example"
+                                            name="threat_type">
+                                            <option value="Honeypot Interaction">Honeypot Interaction</option>
+                                            <option value="Web Threat Attack">Web Threat Attack</option>
                                         </select>
                                     </div>
                                     <div class="mb-6">
                                         <label for="invoice-message" class="form-label">Security Events Name</label>
-                                        <input class="form-control" type="text" name="security_events_name" value="###" disabled>
+                                        <input class="form-control" type="text" name="threat_name"
+                                            value="{{ $data->threat }}" readonly>
                                     </div>
                                     <div class="mb-6">
-                                        <label for="invoice-message" class="form-label">Any Other Related Information</label>
-                                        <input class="form-control" type="file" id="formFileMultiple" multiple>
+                                        <label for="invoice-message" class="form-label">Any Other Related
+                                            Information</label>
+                                        <input class="form-control" type="file" name="incident_attachments[]"
+                                            id="formFileMultiple" multiple>
                                     </div>
                                     <div class="mb-6 d-flex flex-wrap">
-                                        <button type="button" class="btn btn-primary me-4"
+                                        <button type="submit" class="btn btn-primary me-4"
                                             data-bs-dismiss="offcanvas">Create Report</button>
                                         <button type="button" class="btn btn-label-secondary"
                                             data-bs-dismiss="offcanvas">Cancel</button>
@@ -190,58 +218,7 @@
                                 </form>
                             </div>
                         </div>
-                        <!-- /Send Invoice Sidebar -->
-
-                        <!-- Add Payment Sidebar -->
-                        <div class="offcanvas offcanvas-end" id="addPaymentOffcanvas" aria-hidden="true">
-                            <div class="offcanvas-header border-bottom">
-                                <h5 class="offcanvas-title">Add Payment</h5>
-                                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="offcanvas-body flex-grow-1">
-                                <div class="d-flex justify-content-between bg-lighter p-2 mb-4">
-                                    <p class="mb-0">Invoice Balance:</p>
-                                    <p class="fw-medium mb-0">$5000.00</p>
-                                </div>
-                                <form>
-                                    <div class="mb-6">
-                                        <label class="form-label" for="invoiceAmount">Payment Amount</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="text" id="invoiceAmount" name="invoiceAmount"
-                                                class="form-control invoice-amount" placeholder="100" />
-                                        </div>
-                                    </div>
-                                    <div class="mb-6">
-                                        <label class="form-label" for="payment-date">Payment Date</label>
-                                        <input id="payment-date" class="form-control invoice-date" type="text" />
-                                    </div>
-                                    <div class="mb-6">
-                                        <label class="form-label" for="payment-method">Payment Method</label>
-                                        <select class="form-select" id="payment-method">
-                                            <option value="" selected disabled>Select payment method</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Debit Card">Debit Card</option>
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Paypal">Paypal</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-6">
-                                        <label class="form-label" for="payment-note">Internal Payment Note</label>
-                                        <textarea class="form-control" id="payment-note" rows="2"></textarea>
-                                    </div>
-                                    <div class="mb-6 d-flex flex-wrap">
-                                        <button type="button" class="btn btn-primary me-4"
-                                            data-bs-dismiss="offcanvas">Send</button>
-                                        <button type="button" class="btn btn-label-secondary"
-                                            data-bs-dismiss="offcanvas">Cancel</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <!-- /Add Payment Sidebar -->
+                        <!-- /Send Incident Report Sidebar -->
 
                         <!-- /Offcanvas -->
 
@@ -277,10 +254,12 @@
         <script src="{{ asset('assets/vendor/libs/flatpickr/flatpickr.js') }} "></script>
         <script src="{{ asset('assets/vendor/libs/cleavejs/cleave.js') }} "></script>
         <script src="{{ asset('assets/vendor/libs/cleavejs/cleave-phone.js') }} "></script>
+        <script src="{{ asset('assets/vendor/libs/print-js/html2canvas.min.js') }}"></script>
+        <script src="{{ asset('assets/vendor/libs/print-js/jspdf.umd.min.js') }}"></script>
 
     @endsection
 
     {{-- Page JS --}}
     @section('page_js')
-
+        <script src="{{ asset('assets/js/security-events-view.js') }} "></script>
     @endsection

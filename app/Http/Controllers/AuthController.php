@@ -9,14 +9,46 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    //
-    public function login(Request $request){
-        $user = User::all()->first();
 
-
-        if(Auth::attempt(['username' => 'dcasipong', 'password' => 'dan123'])){
-            dd('working');
+    public function index()
+    {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
         }
-        dd($user);
+
+        return view('auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        $validate = $request->validate([
+            "username" => "required",
+            "password" => "required",
+        ]);
+
+        $username = $request->username;
+        $password = $request->password;
+
+
+        if (Auth::attempt(['username' => $username, 'password' => $password])) {
+            $request->session()->regenerate();
+
+            return redirect('/dashboard');
+        }
+
+        return redirect()->back()->withErrors([
+            'not_found' => 'No credentials found in our database!'
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }

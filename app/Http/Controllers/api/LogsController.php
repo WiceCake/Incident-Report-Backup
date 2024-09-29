@@ -14,8 +14,8 @@ class LogsController extends Controller
     public function honeypot_logs(Request $request){
 
         $urls = [
-            "http://hp.test:9200/join_logs/_search",
-            "http://hp.test:9200/filebeat-7.14.0/_search",
+            "http://uat.muti.group:9200/join_logs/_search",
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -48,12 +48,19 @@ class LogsController extends Controller
 
                 $getData = $getData->first();
                 $event = '';
-                if(Str::contains($data->_source->event, 'A user attempts')){
-                    $event = 'Someone attempts to logged in to honeypot';
-                }else if(Str::contains($data->_source->event, 'A user has logged')){
-                    $event = 'Someone logged in to honeypot';
+
+                $checkCookie = $getData->user_cookies ?? null;
+
+                if($checkCookie){
+                    if(Str::contains($data->_source->event, 'A user has logged')){
+                        $event = "$getData->user_cookies logged in to honeypot";
+                    }else{
+                        $event = "$getData->user_cookies clicks a button inside honeypot";
+                    }
                 }else{
-                    $event = 'Someone clicks buttons inside honeypot';
+                    if(Str::contains($data->_source->event, 'A user attempts')){
+                        $event = 'Someone attempts to logged in to honeypot';
+                    }
                 }
 
                 return [
@@ -75,11 +82,30 @@ class LogsController extends Controller
             // Check if the word "anomaly" exists anywhere in the $data object
             if ($dataString && str_contains($dataString, 'Anomaly')) {
 
-                $url = $data->_source->transaction->request;
+                $cookie_value = "";
+                $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
+
+
+                if (Str::contains($check_header, 'hp_cookie') && $check_header) {
+                    $check_header = explode("; ", $check_header);
+                    $cookie = explode("=", $check_header[0]);
+                    $cookie = $cookie[1];
+                    $cookie_value = $cookie;
+                } else {
+                    $cookie_value = null;
+                }
+
+                $events = '';
+
+                if($cookie_value){
+                    $events = "$cookie_value attempts to attack to honeypot";
+                }else{
+                    $events = "Someone attempts to attack to honeypot";
+                }
 
                 return [
                     "threat_id" => $data->_id,
-                    "threat" => "Someone attempts to attack to honeypot",
+                    "threat" => $events,
                     "timestamp" => $data->_source->{'@timestamp'},
                 ];
             }

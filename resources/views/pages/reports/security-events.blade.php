@@ -1,6 +1,6 @@
 @extends('layout.app')
 
-@section('title', 'MUTI Group | Incident Reports')
+@section('title', 'MUTI Group | Security Events')
 
 @section('content')
 
@@ -94,8 +94,16 @@
                             </div>
                         </div> --}}
 
+                        @if (session('success'))
+                            <div class="alert alert-success my-5 shadow-sm">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
                         <!-- Invoice List Table -->
                         <div class="card">
+
+                            <h5 class="card-header pb-0 text-md-start text-center">Security Events</h5>
                             <div class="card-datatable table-responsive">
                                 <table class="invoice-list-table table border-top">
                                     <thead>
@@ -142,10 +150,11 @@
 
 @section('vendor_js')
 
-    <script src="{{asset('assets/vendor/libs/moment/moment.js') }}"></script>
-    <script src="{{asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+
 @endsection
 
 @section('page_js')
-    <script src="{{ asset('assets/js/app-invoice-list.js') }}"></script>
+    <script src="{{ asset('assets/js/security-events-list.js') }}"></script>
 @endsection

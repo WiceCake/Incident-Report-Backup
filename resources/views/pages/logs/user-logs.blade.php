@@ -29,7 +29,7 @@
                         <!-- Ajax Sourced Server-side -->
                         <div class="card">
                             <h5 class="card-header pb-0 text-md-start text-center">Ajax Sourced Server-side</h5>
-                            <div class="card-datatable text-nowrap">
+                            <div class="card-datatable text-responsive text-nowrap">
                                 <table class="datatables-ajax table table-bordered">
                                     <thead>
                                         <tr>

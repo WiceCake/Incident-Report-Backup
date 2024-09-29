@@ -6,10 +6,11 @@ use DateTime;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Elasticsearch\ClientBuilder;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Redis;
 
 class ThreatDetectionController extends Controller
@@ -18,7 +19,7 @@ class ThreatDetectionController extends Controller
     public function logged_in()
     {
         $urls = [
-            "http://hp.test:9200/filebeat-7.14.0/_search"
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
         ];
 
         $logs = collect($this->getLogs($urls[0]));
@@ -40,7 +41,7 @@ class ThreatDetectionController extends Controller
     public function logged_in_attempt()
     {
         $urls = [
-            "http://hp.test:9200/join_logs/_search",
+            "http://uat.muti.group:9200/join_logs/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -67,8 +68,8 @@ class ThreatDetectionController extends Controller
     public function hp_events(Request $request)
     {
         $urls = [
-            "http://hp.test:9200/join_logs/_search",
-            "http://hp.test:9200/filebeat-7.14.0/_search"
+            "http://uat.muti.group:9200/join_logs/_search",
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -104,7 +105,7 @@ class ThreatDetectionController extends Controller
     public function devices(Request $request)
     {
 
-        $url = "http://hp.test:9200/join_logs/_search";
+        $url = "http://uat.muti.group:9200/join_logs/_search";
 
         $response = Http::get($url, [
             'query' => [
@@ -136,8 +137,8 @@ class ThreatDetectionController extends Controller
     public function weeklyDetection()
     {
         $urls = [
-            "http://hp.test:9200/join_logs/_search",
-            "http://hp.test:9200/filebeat-7.14.0/_search"
+            "http://uat.muti.group:9200/join_logs/_search",
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -252,7 +253,7 @@ class ThreatDetectionController extends Controller
 
     public function userCookies()
     {
-        $url = "http://hp.test:9200/join_logs/_search";
+        $url = "http://uat.muti.group:9200/join_logs/_search";
 
         $response = Http::get($url, [
             'query' => [
@@ -287,8 +288,8 @@ class ThreatDetectionController extends Controller
     public function allThreats(Request $request)
     {
         $urls = [
-            "http://hp.test:9200/join_logs/_search",
-            "http://hp.test:9200/filebeat-7.14.0/_search",
+            "http://uat.muti.group:9200/join_logs/_search",
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -318,6 +319,12 @@ class ThreatDetectionController extends Controller
             })->filter()->values();
 
             if ($hasUserCookie && $hasEvent) {
+
+                $checkReport = $this->findReport($data->_id);
+
+                if ($checkReport) {
+                    return null;
+                }
 
                 $getData = $getData->first();
 
@@ -383,6 +390,12 @@ class ThreatDetectionController extends Controller
                 $url = $data->_source->transaction->request;
 
                 $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+
+                $checkReport = $this->findReport($data->_id);
+
+                if ($checkReport) {
+                    return null;
+                }
 
                 return [
                     "threat_id" => $data->_id,
@@ -488,6 +501,35 @@ class ThreatDetectionController extends Controller
 
         if (Str::contains($user_agent, "Windows")) {
             return "Desktop";
+        }
+    }
+
+    private function findReport($threat_id)
+    {
+        $client = ClientBuilder::create()->build();
+
+        try {
+            $params = [
+                'index' => 'prefix-incident_reports', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'threat_id' => $threat_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $response = $client->search($params);
+
+            // Check if there are any hits and return their count
+            return isset($response['hits']['hits']) ? count($response['hits']['hits']) : null;
+
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return null; // Or handle differently based on your application's needs
         }
     }
 }

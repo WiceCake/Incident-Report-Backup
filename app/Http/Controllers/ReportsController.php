@@ -31,25 +31,10 @@ class ReportsController extends Controller
         $data = $data->map(function ($data){
             return [
                 $data
-                // '_index' => $data->_index,
-                // '_id' => $data->_id,
-                // '_source' => [
-                //     'timestamp' => $data->_source->timestamp,
-                //     'btn_name' => $data->_source->btn_name ?? null,
-                //     'event' => $data->_source->event ?? null,
-                //     'threat_name' => 'Honeypot Interaction',
-                //     'threat_level' => 'High',
-                //     'user_cookie' => $data->_source->event,
-                //     'user_ip' => $cookie_data->user_ip,
-                //     'user_email' => $cookie_data->user_email,
-                //     'user_password' => $cookie_data->user_password,
-                //     'user_agent' => $cookie_data->user_agent,
-                //     'device' => $cookie_data->device,
-                // ]
             ];
         })->values()->first();
 
-        return view('pages.reports.incident-report.view-report', compact('data'));
+        return view('pages.reports.security-events.view-report', compact('data'));
     }
 
     private function findData($user_cookies)
