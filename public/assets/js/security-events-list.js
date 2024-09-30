@@ -56,7 +56,7 @@ reloadTable = table.DataTable({
     language: {
         sLengthMenu: "Show _MENU_",
         search: "",
-        searchPlaceholder: "Search Threat",
+        searchPlaceholder: "Search Events",
         paginate: {
             next: '<i class="bx bx-chevron-right bx-18px"></i>',
             previous: '<i class="bx bx-chevron-left bx-18px"></i>'
@@ -64,6 +64,4 @@ reloadTable = table.DataTable({
     }
 });
 
-setInterval(function () {
-    reloadTable.ajax.reload();
-}, 1000);
+reloadTable.ajax.reload();

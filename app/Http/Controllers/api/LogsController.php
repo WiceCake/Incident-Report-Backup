@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Http;
 
 class LogsController extends Controller
 {
     //
 
-    public function honeypot_logs(Request $request){
+    public function honeypot_logs(Request $request)
+    {
 
         $urls = [
             "http://uat.muti.group:9200/join_logs/_search",
@@ -51,14 +53,14 @@ class LogsController extends Controller
 
                 $checkCookie = $getData->user_cookies ?? null;
 
-                if($checkCookie){
-                    if(Str::contains($data->_source->event, 'A user has logged')){
+                if ($checkCookie) {
+                    if (Str::contains($data->_source->event, 'A user has logged')) {
                         $event = "$getData->user_cookies logged in to honeypot";
-                    }else{
+                    } else {
                         $event = "$getData->user_cookies clicks a button inside honeypot";
                     }
-                }else{
-                    if(Str::contains($data->_source->event, 'A user attempts')){
+                } else {
+                    if (Str::contains($data->_source->event, 'A user attempts')) {
                         $event = 'Someone attempts to logged in to honeypot';
                     }
                 }
@@ -97,9 +99,9 @@ class LogsController extends Controller
 
                 $events = '';
 
-                if($cookie_value){
+                if ($cookie_value) {
                     $events = "$cookie_value attempts to attack to honeypot";
-                }else{
+                } else {
                     $events = "Someone attempts to attack to honeypot";
                 }
 
@@ -124,7 +126,53 @@ class LogsController extends Controller
             "recordsFiltered" => $merge_logs->count(),
             "data" => $merge_logs
         ]);
+    }
 
+    public function user_logs()
+    {
+        $urls = [
+            "http://uat.muti.group:9200/prefix-incident_reports/_search",
+            "http://uat.muti.group:9200/prefix-completed_reports/_search",
+        ];
+
+        $ir_logs = $this->getLogs($urls[0]);
+        $cr_logs = $this->getLogs($urls[1]);
+
+        $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) {
+
+            $date = Carbon::parse($data->_source->time_issued); // Parse the date using Carbon
+            $date = $date->format('M d Y h:i:s a');
+
+            return [
+                "report_id" => $data->_id,
+                "admin_name" => $data->_source->admin_name,
+                "event" => "Created incident report for security event id: " . $data->_source->threat_id,
+                "timestamp" => $date,
+            ];
+        })->values();
+
+        $cr_logs = collect($cr_logs['hits']->hits)->map(function ($data) {
+
+            $date_completed = Carbon::parse($data->_source->timestamp, 'UTC');
+            $date_completed = $date_completed->setTimezone('Asia/Manila');
+            $date_completed = $date_completed->format('M d Y h:i:s a');
+
+            return [
+                "report_id" => $data->_id,
+                "admin_name" => $data->_source->admin_name,
+                "event" => "Completed report for incident report id: " . $data->_source->report_id,
+                "timestamp" => $date_completed,
+            ];
+        })->values();
+
+        $all_logs = $cr_logs->merge($ir_logs);
+
+        return response()->json([
+            "draw" => $request->draw ?? 1,
+            "recordsTotal" => $all_logs->count(),
+            "recordsFiltered" => $all_logs->count(),
+            "data" => $all_logs
+        ]);
     }
 
     private function getLogs($url)

@@ -21,10 +21,12 @@ Route::prefix('/v1')->group(function(){
     Route::get('/detection/weekly', [ThreatDetectionController::class, 'weeklyDetection']);
     Route::get('/cookies', [ThreatDetectionController::class, 'userCookies']);
     Route::get('/threats/all', [ThreatDetectionController::class, 'allThreats']);
+    Route::get('/threats/all/not_filtered', [ThreatDetectionController::class, 'allThreatsNotFiltered']);
 
     // Incident Report Api
     Route::get('/incident/reports', [IncidentReportController::class, 'lists']);
 
-    // Edited by Eric
+    // Logs
     Route::get('/logs/honeypot', [LogsController::class, 'honeypot_logs']);
+    Route::get('/logs/user', [LogsController::class, 'user_logs']);
 });

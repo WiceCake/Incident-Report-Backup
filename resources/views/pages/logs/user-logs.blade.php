@@ -28,21 +28,22 @@
 
                         <!-- Ajax Sourced Server-side -->
                         <div class="card">
-                            <h5 class="card-header pb-0 text-md-start text-center">Ajax Sourced Server-side</h5>
-                            <div class="card-datatable text-responsive text-nowrap">
-                                <table class="datatables-ajax table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Full name</th>
-                                            <th>Email</th>
-                                            <th>Position</th>
-                                            <th>Office</th>
-                                            <th>Start date</th>
-                                            <th>Salary</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
+                            <h5 class="card-header pb-0 text-md-start text-center">User Logs</h5>
+                            <div class="card-datatable table-responsive text-nowrap">
+                                <table class="invoice-list-table table border-top">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Event</th>
+                                                <th>Created By:</th>
+                                                <th>Date</th>
+                                                {{-- <th class="text-truncate">Status</th> --}}
+                                                {{-- <th>Invoice Status</th>
+                                                <th class="cell-fit">Action</th> --}}
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
                         </div>
                         <!--/ Ajax Sourced Server-side -->
 
@@ -77,5 +78,6 @@
 @endsection
 
 @section('page_js')
-    <script src="{{ asset('assets/js/tables-datatables-advanced.js') }}"></script>
+    {{-- <script src="{{ asset('assets/js/tables-datatables-advanced.js') }}"></script> --}}
+    <script src="{{ asset('assets/js/user-tables-logs.js') }}"></script>
 @endsection

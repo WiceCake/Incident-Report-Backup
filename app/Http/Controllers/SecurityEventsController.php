@@ -25,10 +25,13 @@ class SecurityEventsController extends Controller
     public function create(Request $request)
     {
 
+        $request->validate([
+            'threat_type' => 'required'
+        ]);
+
         $client = ClientBuilder::create()
             ->setHosts(['uat.muti.group:9200'])
             ->build();
-
 
         $uploadedFilePaths = [];
 
@@ -38,7 +41,7 @@ class SecurityEventsController extends Controller
 
             foreach ($files as $file) {
                 if ($file->isValid()) {
-                    $storedPath = $file->store('incident_attachments/' . $request->threat_id);
+                    $storedPath = $file->store('public/incident_attachments/' . $request->threat_id);
 
                     $url = Storage::url($storedPath);
 

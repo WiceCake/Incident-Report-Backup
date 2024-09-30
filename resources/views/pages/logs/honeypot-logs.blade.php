@@ -28,7 +28,7 @@
 
                         <!-- Ajax Sourced Server-side -->
                         <div class="card">
-                            <h5 class="card-header pb-0 text-md-start text-center">Ajax Sourced Server-side</h5>
+                            <h5 class="card-header pb-0 text-md-start text-center">Honeypot Logs</h5>
                             <div class="card-datatable table-responsive text-nowrap">
                             <table class="invoice-list-table table border-top">
                                     <thead>

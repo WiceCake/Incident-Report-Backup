@@ -29,26 +29,6 @@ function printDiv(divId, filename) {
         }
 
         // Save the PDF
-        pdf.save(`security-events-${filename}.pdf`);
+        pdf.save(`incident-reports-${filename}.pdf`);
     });
 }
-
-function changeTime(){
-    incidentFormCurrentTime = new Date()
-    $('#timestampIssue').val(`${moment(incidentFormCurrentTime).format('YYYY-MM-DDTHH:mm:ssZ')}`);
-}
-
-$(document).ready(function() {
-    threatTime = $('#threatTime').val()
-
-    threatDataDate = new Date(threatTime)
-
-    // Security Events Display Date
-    $('#dateDataDay').html(moment(threatDataDate).format("MMM DD YYYY"))
-    $('#dateDataTime').html(moment(threatDataDate).format("h:mm:ss"))
-
-    // Incident Form
-    incidentFormDetectedTime = new Date(threatTime)
-    $('#timestampDetected').val(`${moment(threatDataDate).format('YYYY-MM-DDTHH:mm:ssZ')}`);
-
-});

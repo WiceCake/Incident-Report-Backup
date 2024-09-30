@@ -31,8 +31,11 @@
 
                     <div class="container-xxl flex-grow-1 container-p-y">
 
-
-
+                        @error('threat_type')
+                            <div class="alert alert-danger my-5 shadow-sm">
+                                {{ $message }}
+                            </div>
+                        @enderror
 
                         <div class="row invoice-preview">
                             <!-- Securirity Events -->
@@ -40,17 +43,8 @@
                                 <div class="card invoice-preview-card p-sm-12 p-6">
                                     <div class="card-body invoice-preview-header rounded">
                                         <div>
-                                            @if ($errors->any())
-                                                <div class="alert alert-danger text-dark px-5 py-3">
-                                                    <ul class="m-0">
-                                                        @foreach ($errors->all() as $error)
-                                                            <li>{{ $error }}</li>
-                                                        @endforeach
-                                                    </ul>
-                                                </div>
-                                            @endif
                                             <div class="mb-4 text-heading">
-                                                <h5 class="fw-medium mb-2">ID: {{ $data->threat_id }}</h5>
+                                                <h5 class="fw-medium mb-2">Security Events ID: {{ $data->threat_id }}</h5>
                                                 <div>
                                                     <span class="text-heading demo fw-bold fs-4 mb-3 d-block">Security Event
                                                         Name:</span>
@@ -168,7 +162,8 @@
                                     aria-label="Close"></button>
                             </div>
                             <div class="offcanvas-body pt-0 flex-grow-1">
-                                <form method="POST" action="{{ route('report.security.create') }}" enctype="multipart/form-data">
+                                <form method="POST" action="{{ route('report.security.create') }}"
+                                    enctype="multipart/form-data">
                                     @csrf
                                     <input type="hidden" value="{{ $data->timestamp }}" id="threatTime">
                                     <input type="hidden" value="{{ $data->threat }}" id="threatName">
@@ -191,9 +186,10 @@
                                     </div>
                                     <div class="mb-6">
                                         <label for="invoice-subject" class="form-label">Select Type of Security
-                                            Events</label>
+                                            Events*</label>
                                         <select class="form-select" aria-label="Default select example"
                                             name="threat_type">
+                                            <option value="">Select Type</option>
                                             <option value="Honeypot Interaction">Honeypot Interaction</option>
                                             <option value="Web Threat Attack">Web Threat Attack</option>
                                         </select>
@@ -205,7 +201,7 @@
                                     </div>
                                     <div class="mb-6">
                                         <label for="invoice-message" class="form-label">Any Other Related
-                                            Information</label>
+                                            Information (File Attachments)</label>
                                         <input class="form-control" type="file" name="incident_attachments[]"
                                             id="formFileMultiple" multiple>
                                     </div>

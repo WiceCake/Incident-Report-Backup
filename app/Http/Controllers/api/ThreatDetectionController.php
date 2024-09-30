@@ -285,6 +285,139 @@ class ThreatDetectionController extends Controller
         return $response;
     }
 
+    public function allThreatsNotFiltered(Request $request)
+    {
+        $urls = [
+            "http://uat.muti.group:9200/join_logs/_search",
+            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
+        ];
+
+        $hp_logs = $this->getLogs($urls[0]);
+        $modsec_logs = $this->getLogs($urls[1]);
+
+        $getData = collect($hp_logs['hits']->hits)->map(function ($data) {
+            $hasIPAddress = $data->_source->user_ip ?? null;
+            $hasUserCookie = $data->_source->user_cookies ?? null;
+
+            if ($hasIPAddress && $hasUserCookie) {
+                return $data->_source;
+            }
+
+            return null;
+        })->filter()->unique('user_cookies')->values();
+
+
+        $hp_logs = collect($hp_logs['hits']->hits)->map(function ($data) use ($getData) {
+            $hasUserCookie = $data->_source->user_cookie ?? '';
+            $hasEvent = $data->_source->event ?? null;
+
+            $getData = $getData->map(function ($data) use ($hasUserCookie) {
+                if ($hasUserCookie == $data->user_cookies) {
+                    return $data;
+                }
+                return null;
+            })->filter()->values();
+
+            if ($hasUserCookie && $hasEvent) {
+
+                $getData = $getData->first();
+
+                return [
+                    "threat_id" => $data->_id,
+                    "threat_level" => "Low",
+                    "threat" => $data->_source->event . ' on Honeypot' ?? null,
+                    "threat_category" => "Not Available",
+                    "timestamp" => $data->_source->timestamp,
+                    "ip_address" => $getData->user_ip,
+                    "action" => 1,
+                    "others" => [
+                        "cookies" => $hasUserCookie,
+                        "btn_name" => $data->_source->btn_name ?? null,
+                        "user_agent" => $getData->user_agent,
+                        "url" => $getData->current_url,
+                        "referrer_url" => $getData->referrer_url,
+                        "device" => $getData->device,
+                    ]
+                ];
+            }
+
+            return null;
+        })->filter()->values();
+
+
+        $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
+            $dataString = json_encode($data);
+
+            // Check if the word "anomaly" exists anywhere in the $data object
+            if ($dataString && str_contains($dataString, 'Anomaly')) {
+
+                $cookie_value = "";
+                $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
+
+
+                if (Str::contains($check_header, 'hp_cookie') && $check_header) {
+                    $check_header = explode("; ", $check_header);
+                    $cookie = explode("=", $check_header[0]);
+                    $cookie = $cookie[1];
+                    $cookie_value = $cookie;
+                } else {
+                    $cookie_value = 'No Cookies';
+                }
+
+                $anomalyScore = $this->getAnomalyScore($data);
+                $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage'];
+
+                $threatNames = collect($data->_source->transaction->messages)
+                    ->pluck('message')
+                    ->filter(function ($message) use ($attackKeywords) {
+
+                        // Check if the message contains any attack-related keyword
+                        foreach ($attackKeywords as $keyword) {
+                            if (str_contains($message, $keyword)) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    })->values();
+
+                $url = $data->_source->transaction->request;
+
+                $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+
+                return [
+                    "threat_id" => $data->_id,
+                    "threat_level" => $anomalyScore,
+                    "threat" => $threatNames->implode(', '),
+                    // "threat_data" => $data->_source->transaction->messages,
+                    "threat_category" => "Not Available",
+                    "timestamp" => $data->_source->{'@timestamp'},
+                    "ip_address" => $data->_source->transaction->client_ip,
+                    "action" => 1,
+                    "others" => [
+                        "cookies" => $cookie_value,
+                        "btn_name" => null,
+                        "user_agent" => $data->_source->transaction->request->headers->{'User-Agent'},
+                        "url" => "http://" . $url->headers->Host . $url->uri,
+                        "referrer_url" => "http://" . $url->headers->Host,
+                        "device" => $device
+                    ]
+                ];
+            }
+            return null;
+        })->filter()->values();
+
+        $merge_logs = $hp_logs->merge($modsec_logs);
+
+        // dd($merge_logs);
+
+        return response()->json([
+            'draw' => $request->draw ?? 1,
+            'recordsTotal' => $merge_logs->count(),
+            'recordsFiltered' => $merge_logs->count(),
+            'data' => $merge_logs
+        ]);
+    }
     public function allThreats(Request $request)
     {
         $urls = [
