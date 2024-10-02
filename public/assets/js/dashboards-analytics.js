@@ -40,6 +40,16 @@ function filterDayData(data, week, day) {
     })
 }
 
+const getMonth = () => {
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const currentMonth = new Date().getMonth(); // getMonth() returns 0-based month (0 = January, 11 = December)
+  return months[currentMonth];
+};
+
 (async function () {
     let cardColor, headingColor, legendColor, labelColor, shadeColor, borderColor;
 
@@ -50,9 +60,14 @@ function filterDayData(data, week, day) {
     borderColor = config.colors.borderColor;
 
     let devices = await getDevices()
+
     devices = devices.data
-    let mobileCount = devices.filter(data => data.device === 'Mobile').length
-    let desktopCount = devices.filter(data => data.device === 'Desktop').length
+    let mobileCount = 0, desktopCount = 0
+
+    if(devices.length){
+        mobileCount = devices.filter(data => data.device === 'Mobile').length
+        desktopCount = devices.filter(data => data.device === 'Desktop').length
+    }
 
 
     // Order Statistics Chart

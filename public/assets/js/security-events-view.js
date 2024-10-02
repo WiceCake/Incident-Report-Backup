@@ -35,20 +35,9 @@ function printDiv(divId, filename) {
 
 function changeTime(){
     incidentFormCurrentTime = new Date()
-    $('#timestampIssue').val(`${moment(incidentFormCurrentTime).format('YYYY-MM-DDTHH:mm:ssZ')}`);
+    $('#timestampIssueDisplay').val(`${moment(incidentFormCurrentTime).format('MMM DD, YYYY hh:mm:ss a')}`);
+
+    // $('#timestampIssueDisplay').val(`${moment(incidentFormCurrentTime).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')}`);
+    $('#timestampIssue').val(`${moment(incidentFormCurrentTime).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')}`);
 }
 
-$(document).ready(function() {
-    threatTime = $('#threatTime').val()
-
-    threatDataDate = new Date(threatTime)
-
-    // Security Events Display Date
-    $('#dateDataDay').html(moment(threatDataDate).format("MMM DD YYYY"))
-    $('#dateDataTime').html(moment(threatDataDate).format("h:mm:ss"))
-
-    // Incident Form
-    incidentFormDetectedTime = new Date(threatTime)
-    $('#timestampDetected').val(`${moment(threatDataDate).format('YYYY-MM-DDTHH:mm:ssZ')}`);
-
-});

@@ -37,8 +37,12 @@ reloadTable = table.DataTable({
             }
             return `<span class="badge bg-label-success text-capitalized">Low</span>`;
         }
-    },
-    {
+    },{
+        targets: 2, // Threat Name
+        render: function (a, e, t, s) {
+            return '<div class="text-truncate" style="max-width: 200px;">' + t.threat +'</div>';
+        }
+    },{
         targets: 4, // Date Detected
         render: function (a, e, t, s) {
             const date = new Date(t.timestamp);
@@ -65,3 +69,7 @@ reloadTable = table.DataTable({
 });
 
 reloadTable.ajax.reload();
+
+setInterval(function(){
+    reloadTable.ajax.reload();
+}, 30000)

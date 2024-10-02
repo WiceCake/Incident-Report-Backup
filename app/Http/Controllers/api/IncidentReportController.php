@@ -36,15 +36,16 @@ class IncidentReportController extends Controller
                 }
                 $data->_source->status = $status;
 
-                $date = Carbon::parse($data->_source->time_issued); // Parse the date using Carbon
-                $date = $date->format('M d Y h:i:s a');
+                // $date = Carbon::parse($data->_source->time_issued);
+                // $date = $date->format('M d Y h:i:s a');
 
                 return [
                     "incident_id" => $data->_id,
                     "threat_id" => $data->_source->threat_id,
                     "admin_name" => $data->_source->admin_name,
                     "admin_username" => $data->_source->admin_username,
-                    "time_issued" => $date,
+                    // "time_issued" => $date,
+                    "time_issued" => $data->_source->time_issued, //$date,
                     "status" => $data->_source->status,
                     "threat_type" => $data->_source->threat_type,
                     "threat_name" => $data->_source->threat_name,

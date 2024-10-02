@@ -145,7 +145,7 @@
                                         </div>
                                         <p class="mb-1">Total Honeypot Threat Detected</p>
                                         <h4 class="card-title mb-3">
-                                            {{ count($all_threats['data']) ?? 0 }}</h4>
+                                            {{ count($all_threats['data'] ?? []) }}</h4>
                                     </div>
                                 </div>
                             </div>
@@ -350,22 +350,23 @@
                                             <div id="orderStatisticsChart"></div>
                                         </div>
                                         <ul class="p-0 m-0">
-                                            @foreach ($devices as $device)
+                                            @foreach ($devices as $key => $device)
                                                 <li class="d-flex align-items-center mb-5">
                                                     <div class="avatar flex-shrink-0 me-3">
                                                         <span class="avatar-initial rounded bg-label-primary"><i
                                                                 class="bx
-                                                                {{ $device->first()->device == 'Mobile' ? 'bx-mobile-alt' : 'bx-desktop' }}
+                                                                {{ $key == 'mobile' ? 'bx-mobile-alt' : 'bx-desktop' }}
                                                                 "></i></span>
                                                     </div>
                                                     <div
                                                         class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
                                                         <div class="me-2">
-                                                            <h6 class="mb-0">{{ $device->first()->device ?? 0 }}</h6>
+                                                            <h6 class="mb-0">{{ Str::ucfirst($key) ?? '' }}
+                                                            </h6>
                                                             <small>Device</small>
                                                         </div>
                                                         <div class="user-progress">
-                                                            <h6 class="mb-0">{{ $device->count() ?? 0 }}</h6>
+                                                            <h6 class="mb-0">{{ $device->count() ?? '' }}</h6>
                                                         </div>
                                                     </div>
                                                 </li>
@@ -394,7 +395,8 @@
                                                                 class="bx bx-chart bx-lg"></i></span>
                                                     </div>
                                                     <div>
-                                                        <p class="mb-0">Month of September</p>
+                                                        <p class="mb-0">Month of {{ \Carbon\Carbon::now()->format('F') }}
+                                                        </p>
                                                         <div class="d-flex align-items-center">
                                                             <h6 class="mb-0 me-1">Total Threats Detected:</h6>
                                                             <small class="text-danger fw-medium">
@@ -406,7 +408,7 @@
                                                 <div id="incomeChart"></div>
                                                 <div class="text-center mt-10 gap-3">
                                                     <h6 class="mb-0">Week of the Month:
-                                                        {{ $weekly_detection->first()->week_of_the_month }}</h6>
+                                                        {{ \Carbon\Carbon::now()->weekOfMonth }}</h6>
                                                 </div>
                                             </div>
                                         </div>
@@ -434,24 +436,30 @@
                                     </div>
                                     <div class="card-body pt-4">
                                         <ul class="p-0 m-0">
-                                            @foreach ($cookies as $cookie)
-                                                <li class="d-flex align-items-center mb-6">
-                                                    <div class="avatar flex-shrink-0 me-3">
-                                                        <span class="avatar-initial rounded bg-label-primary"><i
-                                                                class="bx bx-user"></i></span>
-                                                    </div>
-                                                    <div
-                                                        class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                                        <div class="me-2">
-                                                            <h6 class="fw-normal mb-0">{{ $cookie->user_cookie }}</h6>
-                                                            <div class="user-progress d-flex align-items-center gap-2">
-                                                                <small>Attempts: </small>
-                                                                <small>{{count($cookie->content)}}</small>
+                                            @if (count($cookies))
+                                                @foreach ($cookies as $cookie)
+                                                    <li class="d-flex align-items-center mb-6">
+                                                        <div class="avatar flex-shrink-0 me-3">
+                                                            <span class="avatar-initial rounded bg-label-primary"><i
+                                                                    class="bx bx-user"></i></span>
+                                                        </div>
+                                                        <div
+                                                            class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                                            <div class="me-2">
+                                                                <h6 class="fw-normal mb-0">{{ $cookie->user_cookie }}</h6>
+                                                                <div class="user-progress d-flex align-items-center gap-2">
+                                                                    <small>Attempts: </small>
+                                                                    <small>{{ count($cookie->content) }}</small>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </li>
-                                            @endforeach
+                                                    </li>
+                                                @endforeach
+                                            @else
+                                                <div class="mb-5 text-center">
+                                                    No Cookie Found
+                                                </div>
+                                            @endif
                                         </ul>
                                     </div>
                                 </div>

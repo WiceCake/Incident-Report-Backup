@@ -23,96 +23,100 @@ class LogsController extends Controller
         $hp_logs = $this->getLogs($urls[0]);
         $modsec_logs = $this->getLogs($urls[1]);
 
-        $getData = collect($hp_logs['hits']->hits)->map(function ($data) {
-            $hasIPAddress = $data->_source->user_ip ?? null;
-            $hasUserCookie = $data->_source->user_cookies ?? null;
+        if ($hp_logs->count()) {
 
-            if ($hasIPAddress && $hasUserCookie) {
-                return $data->_source;
-            }
+            $getData = collect($hp_logs['hits']->hits)->map(function ($data) {
+                $hasIPAddress = $data->_source->user_ip ?? null;
+                $hasUserCookie = $data->_source->user_cookies ?? null;
 
-            return null;
-        })->filter()->unique('user_cookies')->values();
-
-
-        $hp_logs = collect($hp_logs['hits']->hits)->map(function ($data) use ($getData) {
-            $hasUserCookie = $data->_source->user_cookie ?? '';
-            $hasEvent = $data->_source->event ?? null;
-
-            $getData = $getData->map(function ($data) use ($hasUserCookie) {
-                if ($hasUserCookie == $data->user_cookies) {
-                    return $data;
+                if ($hasIPAddress && $hasUserCookie) {
+                    return $data->_source;
                 }
+
+                return null;
+            })->filter()->unique('user_cookies')->values();
+
+
+            $hp_logs = collect($hp_logs['hits']->hits)->map(function ($data) use ($getData) {
+                $hasUserCookie = $data->_source->user_cookie ?? '';
+                $hasEvent = $data->_source->event ?? null;
+
+                $getData = $getData->map(function ($data) use ($hasUserCookie) {
+                    if ($hasUserCookie == $data->user_cookies) {
+                        return $data;
+                    }
+                    return null;
+                })->filter()->values();
+
+                if ($hasEvent) {
+
+                    $getData = $getData->first();
+                    $event = '';
+
+                    $checkCookie = $getData->user_cookies ?? null;
+
+                    if ($checkCookie) {
+                        if (Str::contains($data->_source->event, 'A user has logged')) {
+                            $event = "$getData->user_cookies logged in to honeypot";
+                        } else {
+                            $event = "$getData->user_cookies clicks a button inside honeypot";
+                        }
+                    } else {
+                        if (Str::contains($data->_source->event, 'A user attempts')) {
+                            $event = 'Someone attempts to logged in to honeypot';
+                        }
+                    }
+
+                    return [
+                        "threat_id" => $data->_id,
+                        "threat" => $event,
+                        "timestamp" => $data->_source->timestamp,
+                    ];
+                }
+
                 return null;
             })->filter()->values();
-
-            if ($hasEvent) {
-
-                $getData = $getData->first();
-                $event = '';
-
-                $checkCookie = $getData->user_cookies ?? null;
-
-                if ($checkCookie) {
-                    if (Str::contains($data->_source->event, 'A user has logged')) {
-                        $event = "$getData->user_cookies logged in to honeypot";
-                    } else {
-                        $event = "$getData->user_cookies clicks a button inside honeypot";
-                    }
-                } else {
-                    if (Str::contains($data->_source->event, 'A user attempts')) {
-                        $event = 'Someone attempts to logged in to honeypot';
-                    }
-                }
-
-                return [
-                    "threat_id" => $data->_id,
-                    "threat" => $event,
-                    "timestamp" => $data->_source->timestamp,
-                ];
-            }
-
-            return null;
-        })->filter()->values();
+        }
 
         // dd($hp_logs);
 
+        if ($modsec_logs->count()) {
+            $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
+                $dataString = json_encode($data);
 
-        $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
-            $dataString = json_encode($data);
+                // Check if the word "anomaly" exists anywhere in the $data object
+                if ($dataString && str_contains($dataString, 'Anomaly')) {
 
-            // Check if the word "anomaly" exists anywhere in the $data object
-            if ($dataString && str_contains($dataString, 'Anomaly')) {
-
-                $cookie_value = "";
-                $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
+                    $cookie_value = "";
+                    $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
 
 
-                if (Str::contains($check_header, 'hp_cookie') && $check_header) {
-                    $check_header = explode("; ", $check_header);
-                    $cookie = explode("=", $check_header[0]);
-                    $cookie = $cookie[1];
-                    $cookie_value = $cookie;
-                } else {
-                    $cookie_value = null;
+                    if (Str::contains($check_header, 'hp_cookie') && $check_header) {
+                        $check_header = explode("; ", $check_header);
+                        $cookie = explode("=", $check_header[0]);
+                        $cookie = $cookie[1];
+                        $cookie_value = $cookie;
+                    } else {
+                        $cookie_value = null;
+                    }
+
+                    $events = '';
+
+                    if ($cookie_value) {
+                        $events = "$cookie_value attempts to attack to honeypot";
+                    } else {
+                        $events = "Someone attempts to attack to honeypot";
+                    }
+
+                    return [
+                        "threat_id" => $data->_id,
+                        "threat" => $events,
+                        "timestamp" => $data->_source->{'@timestamp'},
+                    ];
                 }
-
-                $events = '';
-
-                if ($cookie_value) {
-                    $events = "$cookie_value attempts to attack to honeypot";
-                } else {
-                    $events = "Someone attempts to attack to honeypot";
-                }
-
-                return [
-                    "threat_id" => $data->_id,
-                    "threat" => $events,
-                    "timestamp" => $data->_source->{'@timestamp'},
-                ];
-            }
-            return null;
-        })->filter()->values();
+                return null;
+            })->filter()->values();
+        }
 
         // dd($modsec_logs);
 
@@ -138,40 +142,46 @@ class LogsController extends Controller
         $ir_logs = $this->getLogs($urls[0]);
         $cr_logs = $this->getLogs($urls[1]);
 
-        $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) {
+        $all_logs = collect();
 
-            $date = Carbon::parse($data->_source->time_issued); // Parse the date using Carbon
-            $date = $date->format('M d Y h:i:s a');
+        if ($ir_logs->count()) {
 
-            return [
-                "report_id" => $data->_id,
-                "admin_name" => $data->_source->admin_name,
-                "event" => "Created incident report for security event id: " . $data->_source->threat_id,
-                "timestamp" => $date,
-            ];
-        })->values();
+            $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) {
 
-        $cr_logs = collect($cr_logs['hits']->hits)->map(function ($data) {
+                return [
+                    "report_id" => $data->_id,
+                    "admin_name" => $data->_source->admin_name,
+                    "event" => "Created incident report for security event id: " . $data->_source->threat_id,
+                    "timestamp" => $data->_source->time_issued,
+                ];
+            })->values();
+        }
 
-            $date_completed = Carbon::parse($data->_source->timestamp, 'UTC');
-            $date_completed = $date_completed->setTimezone('Asia/Manila');
-            $date_completed = $date_completed->format('M d Y h:i:s a');
+        if ($cr_logs->count()) {
 
-            return [
-                "report_id" => $data->_id,
-                "admin_name" => $data->_source->admin_name,
-                "event" => "Completed report for incident report id: " . $data->_source->report_id,
-                "timestamp" => $date_completed,
-            ];
-        })->values();
+            $cr_logs = collect($cr_logs['hits']->hits)->map(function ($data) {
+
+                $date_completed = Carbon::parse($data->_source->timestamp, 'UTC');
+                $date_completed = $date_completed->setTimezone('Asia/Manila');
+                $date_completed = $date_completed->format('M d Y h:i:s a');
+
+                return [
+                    "report_id" => $data->_id,
+                    "admin_name" => $data->_source->admin_name,
+                    "event" => "Completed report for incident report id: " . $data->_source->report_id,
+                    "timestamp" => $data->_source->timestamp,
+                ];
+            })->values();
+        }
 
         $all_logs = $cr_logs->merge($ir_logs);
 
+
         return response()->json([
             "draw" => $request->draw ?? 1,
-            "recordsTotal" => $all_logs->count(),
-            "recordsFiltered" => $all_logs->count(),
-            "data" => $all_logs
+            "recordsTotal" => $all_logs->count() ?? 0,
+            "recordsFiltered" => $all_logs->count() ?? 0,
+            "data" => $all_logs ?? []
         ]);
     }
 
@@ -185,6 +195,14 @@ class LogsController extends Controller
             'size' => 10000,
         ]);
 
-        return collect(json_decode($logs));
+        if ($logs->successful()) {
+
+            $response = json_decode($logs);
+
+            return collect($response);
+        } else {
+            // Handle unsuccessful response (e.g., error code from Elasticsearch)
+            return collect([]);
+        }
     }
 }

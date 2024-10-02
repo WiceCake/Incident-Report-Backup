@@ -55,11 +55,12 @@
                                             <hr>
                                             <div>
                                                 <div class="mb-1 text-heading">
-                                                    <span>Day Issues:</span>
+                                                    <span>Day Issues: {{ \Carbon\Carbon::parse($data->timestamp)->timezone('Asia/Manila')->format('F j, Y') }}
+                                                    </span>
                                                     <span class="fw-medium" id="dateDataDay"></span>
                                                 </div>
                                                 <div class="text-heading">
-                                                    <span>Time Issue:</span>
+                                                    <span>Time Issue: {{ \Carbon\Carbon::parse($data->timestamp)->timezone('Asia/Manila')->format('h:i:s a') }}</span>
                                                     <span class="fw-medium" id="dateDataTime"></span>
                                                 </div>
                                             </div>
@@ -177,12 +178,13 @@
                                     <div class="mb-6">
                                         <label for="invoice-to" class="form-label">Time Detected</label>
                                         <input type="text" class="form-control" id="timestampDetected"
-                                            name="time_detected" readonly />
+                                            name="time_detected" value="{{ \Carbon\Carbon::parse($data->timestamp)->timezone('Asia/Manila')->format('M d, Y h:i:s a') }}" readonly />
                                     </div>
                                     <div class="mb-6">
                                         <label for="invoice-to" class="form-label">Time Issued</label>
-                                        <input type="text" class="form-control" id="timestampIssue"
-                                            name="time_issued" readonly />
+                                        <input type="text" class="form-control" id="timestampIssueDisplay" readonly />
+                                        <input type="hidden" class="form-control" id="timestampIssue"
+                                            name="time_issued"/>
                                     </div>
                                     <div class="mb-6">
                                         <label for="invoice-subject" class="form-label">Select Type of Security

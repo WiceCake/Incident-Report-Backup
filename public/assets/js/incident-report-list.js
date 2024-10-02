@@ -1,3 +1,14 @@
+const options = {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+};
+
 table = $('.invoice-list-table')
 reloadTable = table.DataTable({
     ajax: 'http://incident-report.test:81/api/v1/incident/reports',
@@ -27,7 +38,15 @@ reloadTable = table.DataTable({
             return '<a href="/incident-reports/' + t.incident_id + '">' + t.incident_id + "</a>";
         }
     },
+    {
+        targets: 3, // Date Detected
+        render: function (a, e, t, s) {
+            const date = moment(t.time_issued).tz('Asia/Manila').subtract(8, 'hours');
 
+            return '<span class="d-none">' + date.format("YYYYMMDD") + "</span>" + date.format("MMM DD, YYYY h:mm:ss a");
+
+        }
+    },
     {
         targets: 5, // Threat Name
         render: function (a, e, t, s) {
@@ -48,7 +67,7 @@ reloadTable = table.DataTable({
             return '<div class="d-flex align-items-center"><a href="/incident-reports/' + t.threat_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
         }
     }],
-    order: [[4, "desc"]],
+    order: [[3, "desc"]],
     language: {
         sLengthMenu: "Show _MENU_",
         search: "",
@@ -62,3 +81,7 @@ reloadTable = table.DataTable({
 
 
 reloadTable.ajax.reload();
+
+setInterval(function(){
+    reloadTable.ajax.reload();
+}, 30000)

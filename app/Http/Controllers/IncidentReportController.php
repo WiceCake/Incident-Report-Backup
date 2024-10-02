@@ -37,7 +37,7 @@ class IncidentReportController extends Controller
         $date_completed = null;
 
 
-        if($checkCount){
+        if ($checkCount) {
             $status = "Completed";
             $date_completed = $check_data['hits']['hits'][0]['_source']['timestamp'];
             $date_completed = Carbon::parse($date_completed, 'UTC');
@@ -67,17 +67,24 @@ class IncidentReportController extends Controller
             ->setHosts(['uat.muti.group:9200'])
             ->build();
 
+        $carbonDate = Carbon::now();
+
+        // Change the timezone to Asia/Manila
+        $localDate = $carbonDate->timezone('Asia/Manila');
+
         $logs = [
             "report_id" => $request->report_id,
             "admin_name" => $request->admin_name,
             "status" => "Completed",
-            "timestamp" => now()
+            "timestamp" => $localDate->modify('+8 hours')->toISOString()
         ];
+
 
         $params = [
             "index" => "prefix-completed_reports",
             'body' => $logs
         ];
+
 
         $client->index($params);
 
