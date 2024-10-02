@@ -30,8 +30,9 @@ class SecurityEventsController extends Controller
         ]);
 
         $client = ClientBuilder::create()
-            ->setHosts(['uat.muti.group:9200'])
+            ->setHosts(['elasticsearch:9200'])
             ->build();
+
 
         $uploadedFilePaths = [];
 
@@ -73,7 +74,7 @@ class SecurityEventsController extends Controller
 
     private function findData($id)
     {
-        $url = "http://incident-report.test:81/api/v1/threats/all";
+        $url = "http://nginx_two/api/v1/threats/all";
 
         $response = Http::get($url);
 

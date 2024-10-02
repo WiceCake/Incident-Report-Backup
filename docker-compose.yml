@@ -1,0 +1,58 @@
+services:
+  webapp:
+    build:
+      context: ./docker/8.3
+    ports:
+      - '9001'
+    volumes:
+      - '.:/var/www/html'
+    networks:
+      - incident_report
+      - honeypot_laravel_elastic-laravel
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  mysql:
+    image: 'mysql/mysql-server:8.0'
+    ports:
+      - '3307'
+    environment:
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+    volumes:
+      - 'ir_db:/var/lib/mysql'
+    networks:
+      - incident_report
+    restart: unless-stopped
+
+  nginx:
+    image: 'nginx:alpine'
+    container_name: 'nginx_two'
+    volumes:
+      - .:/var/www/html
+      - ./logs/nginx:/var/log/nginx
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - '81:80'
+      # - '8008:8008'
+    networks:
+      - incident_report
+      - honeypot_laravel_elastic-laravel
+    depends_on:
+      - webapp
+      - mysql
+    restart: unless-stopped
+
+networks:
+  incident_report:
+    driver: bridge
+  honeypot_laravel_elastic-laravel:
+    external: true
+
+volumes:
+  ir_db:
+    driver: local
+
+

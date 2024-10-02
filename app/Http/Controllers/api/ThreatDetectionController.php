@@ -19,7 +19,7 @@ class ThreatDetectionController extends Controller
     public function logged_in()
     {
         $urls = [
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
+            "http://elasticsearch:9200/filebeat-7.14.0/_search"
         ];
 
         $logs = collect($this->getLogs($urls[0]));
@@ -41,7 +41,7 @@ class ThreatDetectionController extends Controller
     public function logged_in_attempt()
     {
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
+            "http://elasticsearch:9200/join_logs/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -68,8 +68,8 @@ class ThreatDetectionController extends Controller
     public function hp_events(Request $request)
     {
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
+            "http://elasticsearch:9200/join_logs/_search",
+            "http://elasticsearch:9200/filebeat-7.14.0/_search"
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -105,7 +105,7 @@ class ThreatDetectionController extends Controller
     public function devices(Request $request)
     {
 
-        $url = "http://uat.muti.group:9200/join_logs/_search";
+        $url = "http://elasticsearch:9200/join_logs/_search";
 
 
         $response = $this->getLogs($url);
@@ -133,8 +133,8 @@ class ThreatDetectionController extends Controller
     public function weeklyDetection()
     {
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search"
+            "http://elasticsearch:9200/join_logs/_search",
+            "http://elasticsearch:9200/filebeat-7.14.0/_search"
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -263,7 +263,7 @@ class ThreatDetectionController extends Controller
 
     public function userCookies()
     {
-        $url = "http://uat.muti.group:9200/join_logs/_search";
+        $url = "http://elasticsearch:9200/join_logs/_search";
 
         $response = Http::get($url, [
             'query' => [
@@ -298,8 +298,8 @@ class ThreatDetectionController extends Controller
     public function allThreatsNotFiltered(Request $request)
     {
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
+            "http://elasticsearch:9200/join_logs/_search",
+            "http://elasticsearch:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -434,8 +434,8 @@ class ThreatDetectionController extends Controller
     public function allThreats(Request $request)
     {
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
+            "http://elasticsearch:9200/join_logs/_search",
+            "http://elasticsearch:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -664,7 +664,9 @@ class ThreatDetectionController extends Controller
 
     private function findReport($threat_id)
     {
-        $client = ClientBuilder::create()->build();
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
 
         try {
             $params = [

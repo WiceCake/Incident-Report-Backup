@@ -64,7 +64,7 @@ class IncidentReportController extends Controller
     public function complete(Request $request)
     {
         $client = ClientBuilder::create()
-            ->setHosts(['uat.muti.group:9200'])
+            ->setHosts(['elasticsearch:9200'])
             ->build();
 
         $carbonDate = Carbon::now();
@@ -93,7 +93,7 @@ class IncidentReportController extends Controller
 
     private function findData($id)
     {
-        $url = "http://incident-report.test:81/api/v1/threats/all/not_filtered";
+        $url = "http://nginx_two/api/v1/threats/all/not_filtered";
 
         $response = Http::get($url);
 
@@ -108,7 +108,9 @@ class IncidentReportController extends Controller
 
     private function findReport($threat_id)
     {
-        $client = ClientBuilder::create()->build();
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
 
         try {
             $params = [
@@ -136,7 +138,9 @@ class IncidentReportController extends Controller
 
     private function findCompletedReports($report_id)
     {
-        $client = ClientBuilder::create()->build();
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
 
         try {
             $params = [

@@ -14,13 +14,13 @@ class DashboardController extends Controller
     {
 
         $urls = [
-            "http://incident-report.test:81/api/v1/logged_in",
-            "http://incident-report.test:81/api/v1/logged_in/attempt",
-            "http://incident-report.test:81/api/v1/hp_events",
-            "http://incident-report.test:81/api/v1/devices",
-            "http://incident-report.test:81/api/v1/detection/weekly",
-            "http://incident-report.test:81/api/v1/cookies",
-            "http://incident-report.test:81/api/v1/threats/all"
+            "http://nginx_two/api/v1/logged_in",
+            "http://nginx_two/api/v1/logged_in/attempt",
+            "http://nginx_two/api/v1/hp_events",
+            "http://nginx_two/api/v1/devices",
+            "http://nginx_two/api/v1/detection/weekly",
+            "http://nginx_two/api/v1/cookies",
+            "http://nginx_two/api/v1/threats/all"
         ];
 
         $mobile = $this->getLogs($urls[3])->filter(function ($data) {

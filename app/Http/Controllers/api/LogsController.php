@@ -16,8 +16,8 @@ class LogsController extends Controller
     {
 
         $urls = [
-            "http://uat.muti.group:9200/join_logs/_search",
-            "http://uat.muti.group:9200/filebeat-7.14.0/_search",
+            "http://elasticsearch:9200/join_logs/_search",
+            "http://elasticsearch:9200/filebeat-7.14.0/_search",
         ];
 
         $hp_logs = $this->getLogs($urls[0]);
@@ -135,8 +135,8 @@ class LogsController extends Controller
     public function user_logs()
     {
         $urls = [
-            "http://uat.muti.group:9200/prefix-incident_reports/_search",
-            "http://uat.muti.group:9200/prefix-completed_reports/_search",
+            "http://elasticsearch:9200/prefix-incident_reports/_search",
+            "http://elasticsearch:9200/prefix-completed_reports/_search",
         ];
 
         $ir_logs = $this->getLogs($urls[0]);

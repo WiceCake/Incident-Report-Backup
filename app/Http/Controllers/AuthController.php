@@ -33,7 +33,7 @@ class AuthController extends Controller
         if (Auth::attempt(['username' => $username, 'password' => $password])) {
             $request->session()->regenerate();
 
-            return redirect('/dashboard');
+            return redirect()->route('dashboard');
         }
 
         return redirect()->back()->withErrors([
@@ -49,6 +49,6 @@ class AuthController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login');
     }
 }

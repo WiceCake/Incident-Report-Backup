@@ -16,7 +16,7 @@ class IncidentReportController extends Controller
     public function lists()
     {
         $urls = [
-            "http://uat.muti.group:9200/prefix-incident_reports/_search"
+            "http://elasticsearch:9200/prefix-incident_reports/_search"
         ];
 
         $ir_logs = $this->getLogs($urls[0]);
@@ -87,7 +87,9 @@ class IncidentReportController extends Controller
 
     private function findCompletedReports($report_id)
     {
-        $client = ClientBuilder::create()->build();
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
 
         try {
             $params = [

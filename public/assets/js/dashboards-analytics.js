@@ -6,7 +6,7 @@
 
 async function getDevices() {
     try {
-        const response = await axios.get('/api/v1/devices')
+        const response = await axios.get('http://localhost:81/api/v1/devices')
         return response
     } catch (error) {
         console.error(error)
@@ -15,7 +15,7 @@ async function getDevices() {
 
 async function getWeeklyThreatData() {
     try {
-        const response = await axios.get('/api/v1/detection/weekly')
+        const response = await axios.get('http://localhost:81/api/v1/detection/weekly')
         return response
     } catch (error) {
         console.error(error)

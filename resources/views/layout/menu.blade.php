@@ -31,7 +31,7 @@
             </a>
             <ul class="menu-sub">
                 <li class="menu-item">
-                    <a href="http://localhost:5601/" class="menu-link" target="_blank">
+                    <a href="http://muti.security:5601/" class="menu-link" target="_blank">
                         <div class="text-truncate" data-i18n="Incident reports">Kibana</div>
                     </a>
                 </li>
