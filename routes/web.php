@@ -43,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/honeypot-logs', function () {
         return view('pages.logs.honeypot-logs');
     })->name('logs.honeypot');
+
+    Route::get('/php_info', function (){
+        phpinfo();
+    });
 });
 
 

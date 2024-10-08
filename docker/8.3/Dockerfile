@@ -27,6 +27,9 @@ RUN docker-php-ext-install \
     pcntl \
     bcmath
 
+# Create uploads directory
+RUN mkdir -p /var/www/uploads && chown -R www-data:www-data /var/www/uploads
+
 # Clear cache
 RUN apk cache clean && \
     rm -rf /var/cache/apk/*

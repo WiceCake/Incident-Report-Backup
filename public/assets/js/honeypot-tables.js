@@ -1,6 +1,6 @@
 table = $('.invoice-list-table')
 table.DataTable({
-    ajax: 'http://incident-report.test:81/api/v1/logs/honeypot',
+    ajax: '/api/v1/logs/honeypot',
     columns: [
         { data: 'threat_id' },        // Column 0
         { data: 'threat' },           // Column 1

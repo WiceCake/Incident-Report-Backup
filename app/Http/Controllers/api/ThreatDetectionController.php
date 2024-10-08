@@ -377,7 +377,7 @@ class ThreatDetectionController extends Controller
                     }
 
                     $anomalyScore = $this->getAnomalyScore($data);
-                    $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage'];
+                    $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage', 'URL', 'scanner', 'security'];
 
                     $threatNames = collect($data->_source->transaction->messages)
                         ->pluck('message')
@@ -395,7 +395,12 @@ class ThreatDetectionController extends Controller
 
                     $url = $data->_source->transaction->request;
 
-                    $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+                    $user_agent = '';
+                    $device = '';
+                    if(isset($data->_source->transaction->request->headers->{'User-Agent'})){
+                        $user_agent = $data->_source->transaction->request->headers->{'User-Agent'};
+                        $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+                    }
 
                     return [
                         "threat_id" => $data->_id,
@@ -409,7 +414,7 @@ class ThreatDetectionController extends Controller
                         "others" => [
                             "cookies" => $cookie_value,
                             "btn_name" => null,
-                            "user_agent" => $data->_source->transaction->request->headers->{'User-Agent'},
+                            "user_agent" => $user_agent,
                             "url" => "http://" . $url->headers->Host . $url->uri,
                             "referrer_url" => "http://" . $url->headers->Host,
                             "device" => $device
@@ -520,7 +525,7 @@ class ThreatDetectionController extends Controller
                     }
 
                     $anomalyScore = $this->getAnomalyScore($data);
-                    $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage'];
+                    $attackKeywords = ['Attack', 'Injection', 'Traversal', 'Execution', 'Access', 'XSS', 'Leakage', 'URL', 'scanner', 'security'];
 
                     $threatNames = collect($data->_source->transaction->messages)
                         ->pluck('message')
@@ -538,7 +543,12 @@ class ThreatDetectionController extends Controller
 
                     $url = $data->_source->transaction->request;
 
-                    $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+                    $user_agent = '';
+                    $device = '';
+                    if(isset($data->_source->transaction->request->headers->{'User-Agent'})){
+                        $user_agent = $data->_source->transaction->request->headers->{'User-Agent'};
+                        $device = $this->getDevice($data->_source->transaction->request->headers->{'User-Agent'});
+                    }
 
                     $checkReport = $this->findReport($data->_id);
 
@@ -550,7 +560,7 @@ class ThreatDetectionController extends Controller
                         "threat_id" => $data->_id,
                         "threat_level" => $anomalyScore,
                         "threat" => $threatNames->implode(', '),
-                        // "threat_data" => $data->_source->transaction->messages,
+                        "threat_data" => $data->_source->transaction->messages,
                         "threat_category" => "Not Available",
                         "timestamp" => $data->_source->{'@timestamp'},
                         "ip_address" => $data->_source->transaction->client_ip,
@@ -558,7 +568,7 @@ class ThreatDetectionController extends Controller
                         "others" => [
                             "cookies" => $cookie_value,
                             "btn_name" => null,
-                            "user_agent" => $data->_source->transaction->request->headers->{'User-Agent'},
+                            "user_agent" => $user_agent,
                             "url" => "http://" . $url->headers->Host . $url->uri,
                             "referrer_url" => "http://" . $url->headers->Host,
                             "device" => $device
@@ -660,6 +670,8 @@ class ThreatDetectionController extends Controller
         if (Str::contains($user_agent, "Windows")) {
             return "Desktop";
         }
+
+        return "Unknown Device";
     }
 
     private function findReport($threat_id)

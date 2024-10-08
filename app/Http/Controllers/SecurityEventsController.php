@@ -43,6 +43,7 @@ class SecurityEventsController extends Controller
             foreach ($files as $file) {
                 if ($file->isValid()) {
                     $storedPath = $file->store('public/incident_attachments/' . $request->threat_id);
+                    // dd($storedPath);
 
                     $url = Storage::url($storedPath);
 

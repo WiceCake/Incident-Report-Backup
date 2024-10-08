@@ -1,6 +1,6 @@
 table = $('.invoice-list-table')
 reloadTable = table.DataTable({
-    ajax: 'http://incident-report.test:81/api/v1/threats/all',
+    ajax: '/api/v1/threats/all',
     columns: [
         { data: 'threat_id' },        // Column 0
         { data: 'threat_level' },     // Column 1

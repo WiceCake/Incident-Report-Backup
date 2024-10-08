@@ -11,7 +11,7 @@ const options = {
 
 table = $('.invoice-list-table')
 reloadTable = table.DataTable({
-    ajax: 'http://incident-report.test:81/api/v1/incident/reports',
+    ajax: '/api/v1/incident/reports',
     columns: [
         { data: 'incident_id' },        // Column 0
         { data: 'threat_type' },     // Column 1
