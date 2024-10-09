@@ -1,1 +1,5 @@
-nginx/
+*
+!/nginx/
+!/.gitignore
+nginx/access.log
+nginx/error.log
