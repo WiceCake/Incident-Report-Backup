@@ -31,19 +31,21 @@ class IncidentReportController extends Controller
         $date = $date->format('M d Y h:i:s a');
 
         $report_id = $report_data['_id'];
-        $check_data = $this->findCompletedReports($report_id);
+        $check_data = $this->findPending($report_id);
         $checkCount = count($check_data['hits']['hits'] ?? []);
         $status = $report_data['_source']['status'];
-        $date_completed = null;
+        $draftReport = (object)[];
 
 
         if ($checkCount) {
-            $status = "Completed";
-            $date_completed = $check_data['hits']['hits'][0]['_source']['timestamp'];
-            $date_completed = Carbon::parse($date_completed, 'UTC');
-            $date_completed = $date_completed->setTimezone('Asia/Manila');
-            $date_completed = $date_completed->format('M d Y h:i:s a');
+            $draftReport->summary_info = $check_data['hits']['hits'][0]['_source']['summary_info'];
+            $draftReport->plan_info = $check_data['hits']['hits'][0]['_source']['plan_info'];
+            $draftReport->timestamp = $check_data['hits']['hits'][0]['_source']['timestamp'];
+            $draftReport->timestamp = Carbon::parse($draftReport->timestamp, 'UTC');
+            $draftReport->timestamp = $draftReport->timestamp->format('M d Y h:i:s a');
         }
+        // dd($report_data['_id']);
+        // dd($this->findPending($report_data['_id']));
 
         $report_data = (object)[
             "report_id" => $report_data['_id'],
@@ -51,17 +53,19 @@ class IncidentReportController extends Controller
             "threat_type" => $report_data['_source']['threat_type'],
             "admin_name" => $report_data['_source']['admin_name'],
             "admin_username" => $report_data['_source']['admin_username'],
-            "date_completed" => $date_completed,
             "time_issued" => $date,
             "status" => $status,
             "attachment_path" => $report_data['_source']['attachment_path'],
             "threat_data" => $old_data,
+            "draft_data" => $draftReport,
         ];
+        // dd($report_data);
+
 
         return view('pages.reports.incident-reports.view-report', compact('report_data'));
     }
 
-    public function complete(Request $request)
+    public function draft(Request $request)
     {
         $client = ClientBuilder::create()
             ->setHosts(['elasticsearch:9200'])
@@ -72,23 +76,105 @@ class IncidentReportController extends Controller
         // Change the timezone to Asia/Manila
         $localDate = $carbonDate->timezone('Asia/Manila');
 
+        // dd($localDate);
+
         $logs = [
-            "report_id" => $request->report_id,
             "admin_name" => $request->admin_name,
-            "status" => "Completed",
-            "timestamp" => $localDate->modify('+8 hours')->toISOString()
+            "status" => "Pending Approval",
+            "incident_title" => $request->incident_title,
+            "summary_info" => $request->summary_info,
+            "plan_info" => $request->plan_info,
+            "timestamp" => $localDate->modify('+8 hours')->toISOString(),
+            "data_ids" => [
+                "event_id" => $request->event_id,
+                "incident_id" => $request->incident_id,
+            ]
         ];
 
+        // dd($request->incident_id);
+        // dd();
+        $this->createDraft($request->event_id, $request->incident_id);
+        // dd('donw');
 
         $params = [
-            "index" => "prefix-completed_reports",
+            "index" => "prefix-draft_reports",
             'body' => $logs
         ];
 
 
         $client->index($params);
 
-        return redirect()->route('report.incident')->with('success', 'Report ' . $request->report_id . ' Successfully Created');
+        $actiondata = (object)[
+            "admin_name" => auth()->user()->name,
+            "action" => "Created draft for incident report"
+        ];
+
+        $this->logEvents($actiondata);
+
+        return redirect()->route('report.incident')->with('success', 'Draft Report ' . $request->report_id . ' Successfully Created');
+    }
+
+    public function approve(Request $request)
+    {
+
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
+
+        try {
+
+            $updateParams = [
+                'index' => 'prefix-incident_reports', // Replace with your index name
+                'id' => $request->incident_id,
+                'body' => [
+                    'doc' => [
+                        'status' => 'Approved' // Replace with your field and value
+                    ]
+                ]
+            ];
+
+
+            $params = [
+                'index' => 'prefix-draft_reports', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'data_ids.incident_id' => $request->incident_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $draft = $client->search($params);
+            $draftId = $draft['hits']['hits'][0]['_id'];
+
+            $updateParams2 = [
+                'index' => 'prefix-draft_reports', // Replace with your index name
+                'id' => $draftId,
+                'body'  => [
+                    'doc' => [
+                        'status' => 'In Progress' // Replace with your field name and value
+                    ]
+                ]
+            ];
+
+            $client->update($updateParams);
+            $client->update($updateParams2);
+
+            $actiondata = (object)[
+                "admin_name" => auth()->user()->name,
+                "action" => "Approved to take action of incident report"
+            ];
+
+            $this->logEvents($actiondata);
+
+            return redirect()->route('report.incident')->with('success', 'Report ' . $request->report_id . ' Successfully Approved');
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return 'Error: ' . $e->getMessage();
+        }
     }
 
     private function findData($id)
@@ -98,6 +184,8 @@ class IncidentReportController extends Controller
         $response = Http::get($url);
 
         $response = collect(json_decode($response));
+
+        // dd($response);
 
         $getData = collect($response['data'])->filter(function ($data) use ($id) {
             return $data->threat_id == $id;
@@ -136,7 +224,7 @@ class IncidentReportController extends Controller
         }
     }
 
-    private function findCompletedReports($report_id)
+    private function createDraft($threat_id, $incident_id)
     {
         $client = ClientBuilder::create()
             ->setHosts(['elasticsearch:9200'])
@@ -144,11 +232,60 @@ class IncidentReportController extends Controller
 
         try {
             $params = [
-                'index' => 'prefix-completed_reports', // Replace with your index name
+                'index' => 'prefix-incident_reports', // Replace with your index name
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'report_id' => $report_id // Replace with your field name and value
+                            'threat_id' => $threat_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $response = $client->search($params);
+            // dd($response);
+            // dd(count($response['hits']['hits']));
+
+            if (count($response['hits']['hits']) > 0) {
+                $updateParams = [
+                    'index' => 'prefix-incident_reports', // Replace with your index name
+                    'id' => $incident_id,
+                    'body' => [
+                        'doc' => [
+                            'status' => 'Pending Approval' // Replace with your field and value
+                        ]
+                    ]
+                ];
+
+                $client->update($updateParams);
+
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return 'Error: ' . $e->getMessage();
+        }
+    }
+
+    private function findPending($incident_id)
+    {
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
+
+        // dd($incident_id);
+
+        try {
+            $params = [
+                'index' => 'prefix-draft_reports', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'data_ids.incident_id' => $incident_id // Replace with your field name and value
                         ]
                     ]
                 ]

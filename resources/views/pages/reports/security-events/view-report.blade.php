@@ -108,14 +108,18 @@
                                                     <td class="text-nowrap text-heading">User Agent</td>
                                                     <td class="text-wrap text-break">{{ $data->others->user_agent }}</td>
                                                 </tr>
+                                                @if($data->others->url)
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Url</td>
                                                     <td class="text-wrap text-break">{{ $data->others->url }}</td>
                                                 </tr>
+                                                @endif
+                                                @if($data->others->referrer_url)
                                                 <tr>
                                                     <td class="text-nowrap text-heading">Url Referrer</td>
                                                     <td class="text-wrap text-break">{{ $data->others->referrer_url }}</td>
                                                 </tr>
+                                                @endif
                                             </tbody>
                                         </table>
                                     </div>

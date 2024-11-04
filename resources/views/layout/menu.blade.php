@@ -40,7 +40,7 @@
 
         <!-- Reports -->
         <li class="menu-item
-            @if (in_array(Route::currentRouteName(), ['report.security', 'report.incident'])) active open @endif
+            @if (in_array(Route::currentRouteName(), ['report.security', 'report.incident', 'report.action_documentation', 'report.post_incident', 'report.completed_reports'])) active open @endif
         ">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-error-alt"></i>
@@ -56,6 +56,21 @@
                 <li class="menu-item {{ Route::currentRouteName() == 'report.incident' ? 'active' : '' }}">
                     <a href="{{ route('report.incident') }}" class="menu-link">
                         <div class="text-truncate" data-i18n="Manage reports">Incident Reports</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::currentRouteName() == 'report.action_documentation' ? 'active' : '' }}">
+                    <a href="{{ route('report.action_documentation') }}" class="menu-link">
+                        <div class="text-truncate" data-i18n="Manage reports">Incident Action and Documentation</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::currentRouteName() == 'report.post_incident' ? 'active' : '' }}">
+                    <a href="{{ route('report.post_incident') }}" class="menu-link">
+                        <div class="text-truncate" data-i18n="Manage reports">Post Incident Review</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::currentRouteName() == 'report.completed_reports' ? 'active' : '' }}">
+                    <a href="{{ route('report.completed_reports') }}" class="menu-link">
+                        <div class="text-truncate" data-i18n="Manage reports">Completed Reports</div>
                     </a>
                 </li>
             </ul>

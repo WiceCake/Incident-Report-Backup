@@ -29,6 +29,6 @@ function printDiv(divId, filename) {
         }
 
         // Save the PDF
-        pdf.save(`incident-reports-${filename}.pdf`);
+        pdf.save(`post-incident-${filename}.pdf`);
     });
 }

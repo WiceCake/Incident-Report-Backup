@@ -6,6 +6,8 @@ use Elasticsearch\ClientBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class SecurityEventsController extends Controller
 {
@@ -42,10 +44,11 @@ class SecurityEventsController extends Controller
 
             foreach ($files as $file) {
                 if ($file->isValid()) {
-                    $storedPath = $file->store('public/incident_attachments/' . $request->threat_id);
+                    $storedPath = $file->store('incident_attachments/' . $request->threat_id);
                     // dd($storedPath);
 
                     $url = Storage::url($storedPath);
+                    $url = Str::replace("http://localhost", "", $url);
 
                     $uploadedFilePaths[] = $url;
                 }
@@ -60,7 +63,7 @@ class SecurityEventsController extends Controller
             "threat_type" => $request->threat_type,
             "threat_name" => $request->threat_name,
             "attachment_path" => $uploadedFilePaths ?? [],
-            "status" => "Processing"
+            "status" => "Under Review"
         ];
 
         $params = [
@@ -69,6 +72,13 @@ class SecurityEventsController extends Controller
         ];
 
         $client->index($params);
+
+        $actiondata = (object)[
+            "admin_name" => auth()->user()->name,
+            "action" => "Created report for security event"
+        ];
+
+        $this->logEvents($actiondata);
 
         return redirect()->route('report.security')->with('success', 'Incident Report Successfully Created');
     }

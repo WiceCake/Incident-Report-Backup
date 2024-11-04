@@ -39,7 +39,7 @@
 
                         <div class="row invoice-preview">
                             <!-- Securirity Events -->
-                            <div class="col-12 mb-3 mb-6" id="incidentReportsData">
+                            <div class="col-12 mb-6" id="incidentReportsData">
                                 <div class="card invoice-preview-card p-sm-12 p-6">
                                     <div class="card-body invoice-preview-header rounded">
                                         <div>
@@ -67,10 +67,11 @@
                                                     <span>Status:</span>
                                                     <span class="fw-medium">{{ $report_data->status }}</span>
                                                 </div>
-                                                @if ($report_data->date_completed)
+                                                @if (count((array)$report_data->draft_data))
                                                     <div class="mb-1 text-heading">
-                                                        <span>Date Completed:</span>
-                                                        <span class="fw-medium">{{ $report_data->date_completed }}</span>
+                                                        <span>Date Drafted:</span>
+                                                        <span
+                                                            class="fw-medium">{{ $report_data->draft_data->timestamp }}</span>
                                                     </div>
                                                 @endif
                                             </div>
@@ -125,16 +126,20 @@
                                                     <td class="text-wrap text-break">
                                                         {{ $report_data->threat_data->others->user_agent }}</td>
                                                 </tr>
-                                                <tr>
-                                                    <td class="text-nowrap text-heading">Url</td>
-                                                    <td class="text-wrap text-break">
-                                                        {{ $report_data->threat_data->others->url }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="text-nowrap text-heading">Url Referrer</td>
-                                                    <td class="text-wrap text-break">
-                                                        {{ $report_data->threat_data->others->referrer_url }}</td>
-                                                </tr>
+                                                @if ($report_data->threat_data->others->url)
+                                                    <tr>
+                                                        <td class="text-nowrap text-heading">Url</td>
+                                                        <td class="text-wrap text-break">
+                                                            {{ $report_data->threat_data->others->url }}</td>
+                                                    </tr>
+                                                @endif
+                                                @if ($report_data->threat_data->others->referrer_url)
+                                                    <tr>
+                                                        <td class="text-nowrap text-heading">Url Referrer</td>
+                                                        <td class="text-wrap text-break">
+                                                            {{ $report_data->threat_data->others->referrer_url }}</td>
+                                                    </tr>
+                                                @endif
                                             </tbody>
                                         </table>
                                     </div>
@@ -158,6 +163,23 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    @if (count((array)$report_data->draft_data))
+                                        <div class="card-body px-0">
+                                            <div class="row">
+                                                <hr class="mt-0 mb-6">
+                                                <div class="col-12">
+                                                    <span class="fw-medium text-heading">Summary about the Incident:</span>
+                                                    <p class="my-5">{{ $report_data->draft_data->summary_info }}</p>
+                                                </div>
+                                                <hr class="mt-6 mb-6">
+                                                <div class="col-12">
+                                                    <span class="fw-medium text-heading">Plans about the Incident:</span>
+                                                    <p class="my-5">{{ $report_data->draft_data->plan_info }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <!-- /Security Events -->
@@ -166,15 +188,23 @@
                             <div class="col-12 invoice-actions">
                                 <div class="card">
                                     <div class="card-body">
-                                        @if ($report_data->status == 'Processing')
+                                        @if ($report_data->status == 'Under Review')
                                             <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="modal"
                                                 data-bs-target="#basicModal">
                                                 <span
                                                     class="d-flex align-items-center justify-content-center text-nowrap"><i
-                                                        class="bx bx-check bx-sm me-2"></i>Complete Report</span>
+                                                        class="bx bx-check bx-sm me-2"></i>Create Draft</span>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="modal"
+                                                data-bs-target="#basicModal1">
+                                                <span
+                                                    class="d-flex align-items-center justify-content-center text-nowrap"><i
+                                                        class="bx bx-check bx-sm me-2"></i>Take Action</span>
                                             </button>
                                         @endif
-                                        <button class="btn btn-label-success d-grid w-100" onclick="printDiv(incidentReportsData, '{{ $report_data->report_id }}')">
+                                        <button class="btn btn-label-success d-grid w-100"
+                                            onclick="printDiv(incidentReportsData, '{{ $report_data->report_id }}')">
                                             Download
                                         </button>
                                     </div>
@@ -183,35 +213,108 @@
                             <!-- /Security Events Actions -->
                         </div>
 
-                        <!-- Modal -->
+                        <!-- Modal Create Draft -->
                         <div class="modal fade" id="basicModal" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="exampleModalLabel1">Message</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                            aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="row">
-                                            <div class="text-center">
-                                                <i class='bx bx-question-mark' style="font-size: 10rem"></i>
-                                                <p>Are you sure you want to complete this report?</p>
+                                    <form method="POST" action="{{ route('report.incident.draft') }}"
+                                        enctype="multipart/form-data">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="exampleModalLabel1">Create Draft Report</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div>
+                                                    {{-- <i class='bx bx-question-mark' style="font-size: 10rem"></i> --}}
+                                                    @csrf
+                                                    {{-- <input type="hidden" value="{{ $data->timestamp }}" id="threatTime"> --}}
+                                                    {{-- <input type="hidden" value="{{ $data->threat }}" id="threatName"> --}}
+                                                    {{-- <input type="hidden" value="{{ auth()->user()->username }}" name="username"> --}}
+                                                    <input type="hidden"
+                                                        value="{{ $report_data->threat_data->threat_id }}"
+                                                        name="event_id">
+                                                    <input type="hidden" value="{{ $report_data->report_id }}"
+                                                        name="incident_id">
+                                                    <div class="mb-6">
+                                                        <label for="invoice-to" class="form-label">Incident Title*</label>
+                                                        <input type="text" class="form-control" id="timestampDetected"
+                                                            name="incident_title" value="" required />
+                                                    </div>
+                                                    <div class="mb-6">
+                                                        <label for="invoice-from" class="form-label">From</label>
+                                                        <input type="text" class="form-control" id="adminName"
+                                                            name="admin_name" value="{{ auth()->user()->name }}"
+                                                            readonly />
+                                                    </div>
+                                                    <div class="mb-6">
+                                                        <label for="invoice-to" class="form-label">Summary of the
+                                                            Incident*</label>
+                                                        <textarea class="form-control" placeholder="Include any information here about the incident..." rows="2"
+                                                            style="height: 157px;" name="summary_info" required></textarea>
+                                                    </div>
+                                                    <div class="mb-6">
+                                                        <label for="invoice-to" class="form-label">Plans and Action about
+                                                            the Incident*</label>
+                                                        <textarea class="form-control" placeholder="Include all the plan or action to be taken about the incident..."
+                                                            rows="2" style="height: 157px;" name="plan_info" required></textarea>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <form method="POST" action="{{ route('report.incident.complete') }}">
-                                            @csrf
-                                            <input type="hidden" name="admin_name" value="{{ $report_data->admin_name }}">
-                                            <input type="hidden" name="report_id" value="{{ $report_data->report_id }}">
+                                        <div class="modal-footer">
+                                            <input type="hidden" name="admin_name"
+                                                value="{{ $report_data->admin_name }}">
+                                            <input type="hidden" name="report_id"
+                                                value="{{ $report_data->report_id }}">
                                             <button type="button" class="btn btn-outline-secondary"
                                                 data-bs-dismiss="modal">
                                                 Close
                                             </button>
-                                            <button type="submit" class="btn btn-danger">Save changes</button>
-                                        </form>
-                                    </div>
+                                            <button type="submit" class="btn btn-primary">Create Report</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal Create Draft -->
+                        <div class="modal fade" id="basicModal1" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <form method="POST" action="{{ route('report.incident.approve') }}"
+                                        enctype="multipart/form-data">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="exampleModalLabel1">Message</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div>
+                                                    @csrf
+                                                    <span>Are you sure you want to take action about this incident in your company?</span>
+                                                    <input type="hidden"
+                                                        value="{{ $report_data->threat_data->threat_id }}"
+                                                        name="event_id">
+                                                    <input type="hidden" value="{{ $report_data->report_id }}"
+                                                        name="incident_id">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <input type="hidden" name="admin_name"
+                                                value="{{ $report_data->admin_name }}">
+                                            <input type="hidden" name="report_id"
+                                                value="{{ $report_data->report_id }}">
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                data-bs-dismiss="modal">
+                                                Close
+                                            </button>
+                                            <button type="submit" class="btn btn-danger">Confirm</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>

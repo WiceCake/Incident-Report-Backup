@@ -28,13 +28,13 @@ class IncidentReportController extends Controller
                 $report_id = $data->_id;
                 $report_data = $this->findCompletedReports($report_id);
                 $checkCount = count($report_data['hits']['hits'] ?? []);
-                $status = "Processing";
+                // $status = "Processing";
 
 
-                if ($checkCount) {
-                    $status = "Completed";
+                if ($data->_source->status == 'Approved') {
+                    return null;
                 }
-                $data->_source->status = $status;
+                // $data->_source->status = $status;
 
                 // $date = Carbon::parse($data->_source->time_issued);
                 // $date = $date->format('M d Y h:i:s a');
@@ -51,8 +51,9 @@ class IncidentReportController extends Controller
                     "threat_name" => $data->_source->threat_name,
                     "attachment_path" => $data->_source->attachment_path
                 ];
-            });
+            })->filter()->values();
         }
+
 
         return response()->json([
             'draw' => $request->draw ?? 1,

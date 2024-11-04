@@ -29,9 +29,8 @@ function getWeekOfMonth(date) {
 
     // Calculate the adjusted day index (account for the week start)
     const adjustedDate = dayOfMonth + dayOfWeek;
-
     // Return the week of the month by dividing adjusted date by 7 and rounding up
-    return Math.ceil(adjustedDate / 7);
+    return Math.floor(adjustedDate / 7);
 }
 
 function filterDayData(data, week, day) {
@@ -161,7 +160,9 @@ const getMonth = () => {
     thuData = filterDayData(weeklyThreatData, weekOfMonth, 'Thu')
     friData = filterDayData(weeklyThreatData, weekOfMonth, 'Fri')
     satData = filterDayData(weeklyThreatData, weekOfMonth, 'Sat')
-    sunData = filterDayData(weeklyThreatData, weekOfMonth, 'Sat')
+    sunData = filterDayData(weeklyThreatData, weekOfMonth, 'Sun')
+
+    console.log(sunData)
 
     // Income Chart - Area chart
     // --------------------------------------------------------------------

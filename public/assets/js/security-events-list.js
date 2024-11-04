@@ -5,9 +5,10 @@ reloadTable = table.DataTable({
         { data: 'threat_id' },        // Column 0
         { data: 'threat_level' },     // Column 1
         { data: 'threat' },           // Column 2
-        { data: 'ip_address' },  // Column 3
-        { data: 'timestamp' },        // Column 4
-        { data: 'action' }            // Column 5
+        { data: 'ip_address' },       // Column 3
+        { data: 'threat_score' },     // Column 4
+        { data: 'timestamp' },        // Column 5
+        { data: 'action' },           // Column 6
     ],
     processing: true,
     columnDefs: [{
@@ -17,13 +18,14 @@ reloadTable = table.DataTable({
         targets: !1, // ID
         defaultContent: '-',
         render: function (a, e, t, s) {
+            // console.log(t)
             return ""; // Add your content here if necessary
         }
     }, {
         targets: 0, // Threat Level
         orderable: !1,
         render: function (a, e, t, s) {
-            return '<a href="/incident-reports/' + t.threat_id + '">' + t.threat_id + "</a>";
+            return '<a href="/security-events/' + t.threat_id + '">' + t.threat_id + "</a>";
         }
     }, {
         targets: 1, // Threat Name
@@ -32,24 +34,28 @@ reloadTable = table.DataTable({
 
             if (level === 'High') {
                 return `<span class="badge bg-label-danger text-capitalized">${level}</span>`;
-            }else if (level === 'Medium') {
+            } else if (level === 'Medium') {
                 return `<span class="badge bg-label-warning text-capitalized">${level}</span>`;
             }
             return `<span class="badge bg-label-success text-capitalized">Low</span>`;
         }
-    },{
+    }, {
         targets: 2, // Threat Name
         render: function (a, e, t, s) {
-            return '<div class="text-truncate" style="max-width: 200px;">' + t.threat +'</div>';
+            return '<div class="text-truncate" style="max-width: 200px;">' + t.threat + '</div>';
         }
-    },{
-        targets: 4, // Date Detected
+    }, {
+        targets: 4,
+        visible: false,
+        searchable: false
+    }, {
+        targets: 5, // Date Detected
         render: function (a, e, t, s) {
             const date = new Date(t.timestamp);
             return '<span class="d-none">' + moment(date).format("YYYYMMDD") + "</span>" + moment(date).format("MMM DD YYYY h:mm:ss a");
         }
     }, {
-        targets: 5, // Action
+        targets: 6, // Action
         visible: true, // Make this visible
         orderable: false,
         render: function (a, e, t, s) {
@@ -70,6 +76,6 @@ reloadTable = table.DataTable({
 
 reloadTable.ajax.reload();
 
-setInterval(function(){
+setInterval(function () {
     reloadTable.ajax.reload();
 }, 30000)

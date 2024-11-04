@@ -33,7 +33,7 @@ reloadTable = table.DataTable({
             return '<span class="text-wrap text-break">'+ t +'<span>'
         }
     }],
-    order: [[2, "desc"]],
+    order: [[3, "desc"]],
     language: {
         sLengthMenu: "Show _MENU_",
         search: "",

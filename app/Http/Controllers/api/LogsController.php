@@ -39,7 +39,7 @@ class LogsController extends Controller
 
             $hp_logs = collect($hp_logs['hits']->hits)->map(function ($data) use ($getData) {
                 $hasUserCookie = $data->_source->user_cookie ?? '';
-                $hasEvent = $data->_source->event ?? null;
+                $hasEvent =  $data->_source->attack ?? $data->_source->event ?? null;
 
                 $getData = $getData->map(function ($data) use ($hasUserCookie) {
                     if ($hasUserCookie == $data->user_cookies) {
@@ -53,19 +53,31 @@ class LogsController extends Controller
                     $getData = $getData->first();
                     $event = '';
 
-                    $checkCookie = $getData->user_cookies ?? null;
+                    $checkCookie = $getData->user_cookie ?? $data->_source->user_cookie ?? $data->_source->cookies ?? null;
+
+                    $checkAttack = $data->_source->attack ?? null;
 
                     if ($checkCookie) {
-                        if (Str::contains($data->_source->event, 'A user has logged')) {
-                            $event = "$getData->user_cookies logged in to honeypot";
-                        } else {
-                            $event = "$getData->user_cookies clicks a button inside honeypot";
+                        if (Str::contains($data->_source->event ?? '', 'A user has logged')) {
+                            $event = $getData->user_cookie ?? $data->_source->cookies;
+                            $event = $event . " logged in to honeypot";
+                        }else if(Str::contains($data->_source->event ?? '', 'Click Button')){
+                            $event = $getData->user_cookie ?? $data->_source->user_cookie ?? $data->_source->cookies;
+                            $event = $event . ' clicks button in honeypot';
+                        }else if($checkAttack){
+                            $event = $data->_source->cookies . ' attempts to attack honeypot';
+                        }else {
+                            $event = "$getData->user_cookie clicks a button inside honeypot";
                         }
                     } else {
-                        if (Str::contains($data->_source->event, 'A user attempts')) {
+                        if (Str::contains($data->_source->event ?? '', 'A user attempts')) {
                             $event = 'Someone attempts to logged in to honeypot';
+                        }else if($checkAttack){
+                            $event = 'Someone attempts to attack honeypot';
                         }
                     }
+
+
 
                     return [
                         "threat_id" => $data->_id,
@@ -80,101 +92,86 @@ class LogsController extends Controller
 
         // dd($hp_logs);
 
-        if ($modsec_logs->count()) {
-            $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
-                $dataString = json_encode($data);
+        // if ($modsec_logs->count()) {
+        //     $modsec_logs = collect($modsec_logs['hits']->hits)->map(function ($data) {
+        //         $dataString = json_encode($data);
 
-                // Check if the word "anomaly" exists anywhere in the $data object
-                if ($dataString && str_contains($dataString, 'Anomaly')) {
+        //         // Check if the word "anomaly" exists anywhere in the $data object
+        //         if ($dataString && str_contains($dataString, 'Anomaly')) {
 
-                    $cookie_value = "";
-                    $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
+        //             $cookie_value = "";
+        //             $check_header = $data->_source->transaction->request->headers->Cookie ?? null;
 
 
-                    if (Str::contains($check_header, 'hp_cookie') && $check_header) {
-                        $check_header = explode("; ", $check_header);
-                        $cookie = explode("=", $check_header[0]);
-                        $cookie = $cookie[1];
-                        $cookie_value = $cookie;
-                    } else {
-                        $cookie_value = null;
-                    }
 
-                    $events = '';
+        //             if (Str::contains($check_header, 'hp_cookie') && $check_header) {
+        //                 $check_header = explode("; ", $check_header);
+        //                 $cookie = '';
+        //                 foreach ($check_header as $header) {
+        //                     if (strpos($header, 'hp_cookie') !== false) {
+        //                         $cookie = explode('=', $header)[1]; // Get the value after 'hp_cookie='
+        //                         break; // Stop looping once the value is found
+        //                     }
+        //                 }
+        //                 $cookie_value = $cookie;
+        //             } else {
+        //                 $cookie_value = null;
+        //             }
 
-                    if ($cookie_value) {
-                        $events = "$cookie_value attempts to attack to honeypot";
-                    } else {
-                        $events = "Someone attempts to attack to honeypot";
-                    }
+        //             $events = '';
 
-                    return [
-                        "threat_id" => $data->_id,
-                        "threat" => $events,
-                        "timestamp" => $data->_source->{'@timestamp'},
-                    ];
-                }
-                return null;
-            })->filter()->values();
-        }
+        //             if ($cookie_value) {
+        //                 $events = "$cookie_value attempts to attack to honeypot";
+        //             } else {
+        //                 $events = "Someone attempts to attack to honeypot";
+        //             }
+
+        //             return [
+        //                 "threat_id" => $data->_id,
+        //                 // "check_header" => $check_header,
+        //                 "threat" => $events,
+        //                 "timestamp" => $data->_source->{'@timestamp'},
+        //             ];
+        //         }
+        //         return null;
+        //     })->filter()->values();
+        // }
 
         // dd($modsec_logs);
 
-        $merge_logs = $hp_logs->merge($modsec_logs);
+        // $merge_logs = $hp_logs->merge($modsec_logs);
 
         // dd($merge_logs);
 
         return response()->json([
             "draw" => $request->draw ?? 1,
-            "recordsTotal" => $merge_logs->count(),
-            "recordsFiltered" => $merge_logs->count(),
-            "data" => $merge_logs
+            "recordsTotal" => $hp_logs->count(),
+            "recordsFiltered" => $hp_logs->count(),
+            "data" => $hp_logs
         ]);
     }
 
     public function user_logs()
     {
         $urls = [
-            "http://elasticsearch:9200/prefix-incident_reports/_search",
-            "http://elasticsearch:9200/prefix-completed_reports/_search",
+            "http://elasticsearch:9200/prefix-user_event_logs/_search",
         ];
 
-        $ir_logs = $this->getLogs($urls[0]);
-        $cr_logs = $this->getLogs($urls[1]);
+        $all_logs = $this->getLogs($urls[0]);
+        // $cr_logs = $this->getLogs($urls[1]);
 
-        $all_logs = collect();
+        if ($all_logs->count()) {
 
-        if ($ir_logs->count()) {
-
-            $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) {
+            $all_logs = collect($all_logs['hits']->hits)->map(function ($data) {
 
                 return [
                     "report_id" => $data->_id,
                     "admin_name" => $data->_source->admin_name,
-                    "event" => "Created incident report for security event id: " . $data->_source->threat_id,
+                    "event" => $data->_source->action . " | Event id: " . $data->_id,
                     "timestamp" => $data->_source->time_issued,
                 ];
             })->values();
         }
-
-        if ($cr_logs->count()) {
-
-            $cr_logs = collect($cr_logs['hits']->hits)->map(function ($data) {
-
-                $date_completed = Carbon::parse($data->_source->timestamp, 'UTC');
-                $date_completed = $date_completed->setTimezone('Asia/Manila');
-                $date_completed = $date_completed->format('M d Y h:i:s a');
-
-                return [
-                    "report_id" => $data->_id,
-                    "admin_name" => $data->_source->admin_name,
-                    "event" => "Completed report for incident report id: " . $data->_source->report_id,
-                    "timestamp" => $data->_source->timestamp,
-                ];
-            })->values();
-        }
-
-        $all_logs = $cr_logs->merge($ir_logs);
 
 
         return response()->json([

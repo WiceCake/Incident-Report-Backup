@@ -1,6 +1,6 @@
 @extends('layout.app')
 
-@section('title', 'MUTI Group | Incident Action and Documentation Reports')
+@section('title', 'MUTI Group | Post Incident Reports')
 
 @section('content')
 
@@ -34,14 +34,13 @@
 
                         <!-- Invoice List Table -->
                         <div class="card">
-                            <h5 class="card-header pb-0 text-md-start text-center">Incident Reports</h5>
+                            <h5 class="card-header pb-0 text-md-start text-center">Post Incident Reports</h5>
                             <div class="card-datatable table-responsive">
                                 <table class="invoice-list-table table border-top">
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Threat Type</th>
-                                            <th>Events</th>
+                                            <th>Incident Title</th>
                                             <th>Time Created</th>
                                             <th>Submitted By</th>
                                             <th>Status</th>
@@ -86,5 +85,5 @@
 @endsection
 
 @section('page_js')
-    <script src="{{ asset('assets/js/incident-report-list.js') }}"></script>
+    <script src="{{ asset('assets/js/post-incident-list.js') }}"></script>
 @endsection
