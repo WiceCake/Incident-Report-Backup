@@ -56,14 +56,13 @@ class SecurityEventsController extends Controller
         }
 
         $logs = [
-            "threat_id" => $request->threat_id,
-            "admin_name" => $request->admin_name,
-            "admin_username" => $request->username,
+            "admin_name" => auth()->user()->name,
+            "admin_username" => auth()->user()->username,
             "time_issued" => $request->time_issued,
             "threat_type" => $request->threat_type,
-            "threat_name" => $request->threat_name,
             "attachment_path" => $uploadedFilePaths ?? [],
-            "status" => "Under Review"
+            "status" => "Under Review",
+            "security_event_id" => $request->threat_id
         ];
 
         $params = [

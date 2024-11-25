@@ -19,48 +19,206 @@ class CompletedReportsController extends Controller
     {
 
         $urls = [
-            "http://elasticsearch:9200/prefix-incident_reports/_search",
-            "http://elasticsearch:9200/prefix-draft_reports/_search",
-            "http://elasticsearch:9200/prefix-complete_report/_search",
-            "http://elasticsearch:9200/prefix-post_assessment_logs/_search",
+            "http://nginx_two/api/v1/threats/all/not_filtered",
         ];
 
-        $getLogs = $this->getReport($urls[2], $id);
-        $completed_data = collect($getLogs['hits']['hits'])->first();
+        $getDraft = $this->findReport($id);
+        $threat = collect($getDraft['hits']['hits'])->first();
+        // dd($getDraft);
+
+        // dd($threat);
+        $threat_id = $threat['_source']['security_event_id'];
+        $getLogs = $this->findIncidentReport($threat_id);
+
+        $checkUser = auth()->user()->id;
 
 
-        $draft_data = $this->getReport($urls[1], $completed_data['_source']['data_ids']['draft_id']);
-        $draft_data = collect($draft_data['hits']['hits'])->first();
+        $old_data = $this->findData($urls[0], $threat_id);
 
-        $incident_logs = $this->getReport($urls[0], $completed_data['_source']['data_ids']['incident_id']);
-        $incident_data = collect($incident_logs['hits']['hits'])->first();
+        $report_data = collect($getLogs['hits']['hits'])->first();
 
-        // $post_assessment_data = $this->getReport($urls[3], $completed_data['_source']['data_ids']['post_asssessment_id']);
-        // $post_assessment_data = collect($post_assessment_data['hits']['hits'])->first();
-        // dd($completed_data);
+        $date = Carbon::parse($report_data['_source']['time_issued']); // Parse the date using Carbon
+        $date = $date->format('M d Y h:i:s a');
 
-        $old_data = $this->findData($incident_data['_source']['threat_id']);
+        $report_id = $report_data['_id'];
+        $check_data = $this->findPending($report_data['_source']['security_event_id']);
+        $checkCount = count($check_data['hits']['hits'] ?? []);
+        $status = $report_data['_source']['status'];
+        $draftReport = (object)[];
+
+        $actions = $check_data['hits']['hits'][0]['_source']['actions'];
+        $actions = collect($actions)->map(function ($action){
+            return (object)$action;
+        });
+
+        $checkActions = $this->findCompletedAction($id)['hits']['hits'] ?? null;
+
+        // dd($id);
+        if ($checkActions) {
+            $actions = $check_data['hits']['hits'][0]['_source']['actions'];
+            $actions = collect($actions)->map(function ($action) use ($checkActions) {
+                $checkCompleted = collect($checkActions)->filter(function ($data) use ($action) {
+                    return $data['_source']['action_id'] == $action['id'] ? true : null;
+                })->first();
+
+                $action['action_type'] = 'Note Completed the Task';
+                if ($checkCompleted) {
+                    $action['time_completed'] = $checkCompleted['_source']['timestamp'];
+                    $action['time_completed'] = Carbon::parse($action['time_completed']); // Parse the date using Carbon
+                    $action['time_completed'] = $action['time_completed']->format('M d Y h:i:s a');
+                    $action['status'] = 'Completed';
+                    $action['action_type'] = 'Completed the Task';
+                }
+
+                return (object)$action;
+            });
+        }
+
+        if ($checkCount) {
+            $draftReport->action_type = "Created Draft";
+            $draftReport->report_id =  $check_data['hits']['hits'][0]['_id'];
+            $draftReport->summary_info = $check_data['hits']['hits'][0]['_source']['summary_info'];
+            $draftReport->admin_name = $check_data['hits']['hits'][0]['_source']['admin_name'];
+            $draftReport->actions = $actions;
+            $draftReport->timestamp = $check_data['hits']['hits'][0]['_source']['timestamp'];
+            $draftReport->timestamp = Carbon::parse($draftReport->timestamp, 'UTC');
+            $draftReport->timestamp = $draftReport->timestamp->format('M d Y h:i:s a');
+        }
+        // dd($report_data['_id']);
+        // dd($this->findPending($report_data['_id']));
 
 
-        $completed_report = (object)[
-            "report_id" => $draft_data['_id'],
-            "status" => 'Completed',
-            "admin_name" => $draft_data['_source']['admin_name'],
-            "incident_title" => $draft_data['_source']['incident_title'],
-            "summary_info" => $draft_data['_source']['summary_info'],
-            "plan_info" => $draft_data['_source']['plan_info'],
-            "timestamp" => Carbon::parse($completed_data['_source']['time_issued'], 'UTC')->format('M d Y h:i:s a'),
-            "threat_name" => $incident_data['_source']['threat_name'],
-            "threat_type" => $incident_data['_source']['threat_type'],
-            "attachment_path" => $incident_data['_source']['attachment_path'],
-            "incident_feedback" => $completed_data['_source']['incident_feedback'],
-            "implement_changes" => $completed_data['_source']['implement_changes'],
+
+        $old_data->admin_name = '';
+        $old_data->action_type = 'Detected';
+        $old_data->timestamp = Carbon::parse($old_data->timestamp);
+        $old_data->timestamp = $old_data->timestamp->format('M d Y h:i:s a');
+
+        $report_data = (object)[
+            "action_type" => "Created Incident Report",
+            "report_id" => $report_data['_id'],
+            "threat_name" => $old_data->threat,
+            "threat_type" => $report_data['_source']['threat_type'],
+            "admin_name" => $report_data['_source']['admin_name'],
+            "admin_username" => $report_data['_source']['admin_username'],
+            "timestamp" => $date,
+            "status" => $status,
+            "attachment_path" => $report_data['_source']['attachment_path'],
             "threat_data" => $old_data,
+            "draft_data" => $draftReport,
         ];
+        // dd($report_data)
+// dd($actions);
 
-        // dd($completed_report);
+        $report_actions = collect(
+            array_merge([
+                'old_data' => $old_data,
+                'report_data' => $report_data,
+                'draft_data' => $draftReport,
+            ], $actions->all() ?? [])
+        );
 
-        return view('pages.reports.completed-reports.view-report', compact('completed_report'));
+
+        $draft_id = $id;
+
+
+        return view('pages.reports.completed-reports.view-report', compact('report_data', 'checkUser', 'report_actions', 'draft_id', 'actions'));
+    }
+
+
+    private function findIncidentReport($threat_id)
+    {
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
+
+
+        try {
+            $params = [
+                'index' => 'prefix-incident_reports', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'security_event_id' => $threat_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $response = $client->search($params);
+
+
+            // Check if there are any hits and return their count
+            return $response ? $response : null;
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return null; // Or handle differently based on your application's needs
+        }
+    }
+
+    private function findCompletedAction($threat_id)
+    {
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
+
+        try {
+            $params = [
+                'index' => 'prefix-completed_actions', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'draft_id.keyword' => $threat_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $response = $client->search($params);
+
+
+            // Check if there are any hits and return their count
+            return $response ? $response : null;
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return null; // Or handle differently based on your application's needs
+        }
+    }
+
+    private function findPending($incident_id)
+    {
+        $client = ClientBuilder::create()
+            ->setHosts(['elasticsearch:9200'])
+            ->build();
+
+        // dd($incident_id);
+
+        try {
+            $params = [
+                'index' => 'prefix-draft_reports', // Replace with your index name
+                'body'  => [
+                    'query' => [
+                        'match' => [
+                            'security_event_id' => $incident_id // Replace with your field name and value
+                        ]
+                    ]
+                ]
+            ];
+
+            // Perform the search
+            $response = $client->search($params);
+
+            // Check if there are any hits and return their count
+            return $response ? $response : null;
+        } catch (\Exception $e) {
+            // Handle other potential exceptions
+            // You may want to log this error or return a default value
+            return null; // Or handle differently based on your application's needs
+        }
     }
 
     private function getReport($url, $id)
@@ -84,9 +242,8 @@ class CompletedReportsController extends Controller
     }
 
 
-    private function findData($id)
+    private function findData($url, $id)
     {
-        $url = "http://nginx_two/api/v1/threats/all/not_filtered";
 
         $response = Http::get($url);
 
@@ -107,13 +264,14 @@ class CompletedReportsController extends Controller
             ->setHosts(['elasticsearch:9200'])
             ->build();
 
+
         try {
             $params = [
-                'index' => 'prefix-incident_reports', // Replace with your index name
+                'index' => 'prefix-draft_reports', // Replace with your index name
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'threat_id' => $threat_id // Replace with your field name and value
+                            '_id' => $threat_id // Replace with your field name and value
                         ]
                     ]
                 ]
@@ -121,6 +279,7 @@ class CompletedReportsController extends Controller
 
             // Perform the search
             $response = $client->search($params);
+
 
             // Check if there are any hits and return their count
             return $response ? $response : null;

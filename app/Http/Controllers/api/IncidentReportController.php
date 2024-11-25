@@ -16,18 +16,19 @@ class IncidentReportController extends Controller
     public function lists()
     {
         $urls = [
-            "http://elasticsearch:9200/prefix-incident_reports/_search"
+            "http://elasticsearch:9200/prefix-incident_reports/_search",
+            "http://nginx_two/api/v1/threats/all/not_filtered",
         ];
 
         $ir_logs = $this->getLogs($urls[0]);
 
 
         if ($ir_logs->count()) {
-            $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) {
+            $ir_logs = collect($ir_logs['hits']->hits)->map(function ($data) use ($urls) {
 
                 $report_id = $data->_id;
-                $report_data = $this->findCompletedReports($report_id);
-                $checkCount = count($report_data['hits']['hits'] ?? []);
+                $event_id = $data->_source->security_event_id;
+                // $report_data = $this->findCompletedReports($report_id);
                 // $status = "Processing";
 
 
@@ -39,16 +40,15 @@ class IncidentReportController extends Controller
                 // $date = Carbon::parse($data->_source->time_issued);
                 // $date = $date->format('M d Y h:i:s a');
 
+                $event_data = $this->getApi($urls[1], $event_id);
                 return [
-                    "incident_id" => $data->_id,
-                    "threat_id" => $data->_source->threat_id,
+                    "id" => $data->_id,
                     "admin_name" => $data->_source->admin_name,
                     "admin_username" => $data->_source->admin_username,
-                    // "time_issued" => $date,
                     "time_issued" => $data->_source->time_issued, //$date,
                     "status" => $data->_source->status,
                     "threat_type" => $data->_source->threat_type,
-                    "threat_name" => $data->_source->threat_name,
+                    "threat_name" => $event_data->threat,
                     "attachment_path" => $data->_source->attachment_path
                 ];
             })->filter()->values();
@@ -85,34 +85,49 @@ class IncidentReportController extends Controller
         }
     }
 
-
-    private function findCompletedReports($report_id)
+    private function getApi($url, $id)
     {
-        $client = ClientBuilder::create()
-            ->setHosts(['elasticsearch:9200'])
-            ->build();
 
-        try {
-            $params = [
-                'index' => 'prefix-completed_reports', // Replace with your index name
-                'body'  => [
-                    'query' => [
-                        'match' => [
-                            'report_id' => $report_id // Replace with your field name and value
-                        ]
-                    ]
-                ]
-            ];
+        $response = Http::get($url);
 
-            // Perform the search
-            $response = $client->search($params);
+        $response = collect(json_decode($response));
 
-            // Check if there are any hits and return their count
-            return $response ? $response : null;
-        } catch (\Exception $e) {
-            // Handle other potential exceptions
-            // You may want to log this error or return a default value
-            return null; // Or handle differently based on your application's needs
-        }
+        $getData = collect($response['data'])->filter(function ($data) use ($id) {
+            return $data->threat_id == $id;
+        })->values();
+
+        return $getData->first();
+
     }
+
+
+    // private function findCompletedReports($report_id)
+    // {
+    //     $client = ClientBuilder::create()
+    //         ->setHosts(['elasticsearch:9200'])
+    //         ->build();
+
+    //     try {
+    //         $params = [
+    //             'index' => 'prefix-completed_reports', // Replace with your index name
+    //             'body'  => [
+    //                 'query' => [
+    //                     'match' => [
+    //                         'report_id' => $report_id // Replace with your field name and value
+    //                     ]
+    //                 ]
+    //             ]
+    //         ];
+
+    //         // Perform the search
+    //         $response = $client->search($params);
+
+    //         // Check if there are any hits and return their count
+    //         return $response ? $response : null;
+    //     } catch (\Exception $e) {
+    //         // Handle other potential exceptions
+    //         // You may want to log this error or return a default value
+    //         return null; // Or handle differently based on your application's needs
+    //     }
+    // }
 }

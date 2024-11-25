@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActionDocumentationController;
+use App\Http\Controllers\AllReportsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Controllers\AuthController;
@@ -41,18 +42,21 @@ Route::middleware('auth')->group(function () {
     // Incident Action and Documentation
     Route::get('/action-documentation', [ActionDocumentationController::class, 'index'])->name('report.action_documentation');
     Route::get('/action-documentation/{id}', [ActionDocumentationController::class, 'show'])->name('report.action_documentation.view');
-    Route::post('/action-documentation/log-progress', [ActionDocumentationController::class, 'logProgress'])->name('report.action_documentation.logging');
-    Route::post('/action-documentation/mitigate', [ActionDocumentationController::class, 'mitigateAttack'])->name('report.action_documentation.mitigate');
+    Route::post('/action-documentation/complete_action', [ActionDocumentationController::class, 'completeAction'])->name('report.action_documentation.complete_action');
+
+    Route::post('/action-documentation/complete', [ActionDocumentationController::class, 'completeReport'])->name('report.action_documentation.completed');
     Route::post('/action-documentation/post_assessment', [ActionDocumentationController::class, 'postAssessment'])->name('report.action_documentation.post_assessment');
 
     // Post Incident Report
-    Route::get('/post-incident', [PostIncidentController::class, 'index'])->name('report.post_incident');
-    Route::get('/post-incident/{id}', [PostIncidentController::class, 'show'])->name('report.post_incident.view');
-    Route::post('/post-incident/close', [PostIncidentController::class, 'closeReport'])->name('report.post_incident.close');
+    // Route::get('/post-incident', [PostIncidentController::class, 'index'])->name('report.post_incident');
+    // Route::get('/post-incident/{id}', [PostIncidentController::class, 'show'])->name('report.post_incident.view');
+    // Route::post('/post-incident/close', [PostIncidentController::class, 'closeReport'])->name('report.post_incident.close');
 
     // Completed Reports
     Route::get('/completed-reports', [CompletedReportsController::class, 'index'])->name('report.completed_reports');
     Route::get('/completed-reports/{id}', [CompletedReportsController::class, 'show'])->name('report.post_incident.view');
+
+    Route::get('/all-reports', [AllReportsController::class, 'index'])->name('report.all_reports');
 
     // Logs
 

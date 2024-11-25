@@ -63,14 +63,14 @@
                         <div class="text-truncate" data-i18n="Manage reports">Incident Action and Documentation</div>
                     </a>
                 </li>
-                <li class="menu-item {{ Route::currentRouteName() == 'report.post_incident' ? 'active' : '' }}">
-                    <a href="{{ route('report.post_incident') }}" class="menu-link">
-                        <div class="text-truncate" data-i18n="Manage reports">Post Incident Review</div>
-                    </a>
-                </li>
                 <li class="menu-item {{ Route::currentRouteName() == 'report.completed_reports' ? 'active' : '' }}">
                     <a href="{{ route('report.completed_reports') }}" class="menu-link">
                         <div class="text-truncate" data-i18n="Manage reports">Completed Reports</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ Route::currentRouteName() == 'report.all_reports' ? 'active' : '' }}">
+                    <a href="{{ route('report.all_reports') }}" class="menu-link">
+                        <div class="text-truncate" data-i18n="Manage reports">All Reports</div>
                     </a>
                 </li>
             </ul>

@@ -32,3 +32,8 @@ function printDiv(divId, filename) {
         pdf.save(`incident-reports-${filename}.pdf`);
     });
 }
+
+
+function addInput($id){
+    $($id).append(`<input type="text" class="form-control w-100 mb-3" name="actions[]" placeholder="Input action here..." required />`)
+}

@@ -4,7 +4,6 @@
 
 @section('page-css')
     <link rel="stylesheet" href="../assets/vendor/css/pages/app-invoice.css" />
-
 @endsection
 
 @section('content')
@@ -56,31 +55,21 @@
                                             <hr>
                                             <div>
                                                 <div class="mb-1 text-heading">
-                                                    <span>Date Created:</span>
-                                                    <span class="fw-medium">{{ $report_data->time_issued }}</span>
-                                                </div>
-                                                <div class="mb-1 text-heading">
-                                                    <span>Created By:</span>
-                                                    <span class="fw-medium">{{ $report_data->admin_name }}</span>
+                                                    <span>Date Detected:</span>
+                                                    <span
+                                                        class="fw-medium">{{ $report_data->threat_data->timestamp }}</span>
                                                 </div>
                                                 <div class="mb-1 text-heading">
                                                     <span>Status:</span>
                                                     <span class="fw-medium">{{ $report_data->status }}</span>
                                                 </div>
-                                                @if (count((array)$report_data->draft_data))
-                                                    <div class="mb-1 text-heading">
-                                                        <span>Date Drafted:</span>
-                                                        <span
-                                                            class="fw-medium">{{ $report_data->draft_data->timestamp }}</span>
-                                                    </div>
-                                                @endif
                                             </div>
                                         </div>
                                     </div>
                                     <div class="card-body px-0">
 
                                     </div>
-                                    <div class="table-responsive border border-bottom-0 border-top-0 rounded mb-4">
+                                    {{-- <div class="table-responsive border border-bottom-0 border-top-0 rounded mb-4">
                                         <table class="table m-0">
                                             <thead>
                                                 <tr>
@@ -142,10 +131,75 @@
                                                 @endif
                                             </tbody>
                                         </table>
-                                    </div>
+                                    </div> --}}
                                     <hr class="mt-0 mb-6">
+                                    <span class="fw-medium text-heading mb-4">Reports:</span>
+                                    <div class="dataTables_scroll">
+                                        <div class="table-responsive border border-bottom-0 border-top-0 rounded mb-4"
+                                            style="position: relative; overflow: auto; width: 100%;">
+                                            <table class="table no-footer" id="DataTables_Table_0"
+                                                aria-describedby="DataTables_Table_0_info" style="width: 1645px;">
+                                                <thead>
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th class="text-truncate">Incident Name</th>
+                                                        <th class="text-truncate">Threat Level</th>
+                                                        <th class="text-truncate">IP Address</th>
+                                                        <th class="text-truncate">Action Taken</th>
+                                                        <th class="text-truncate">Created By</th>
+                                                        <th class="text-truncate">Date Issued</th>
+                                                        <th class="text-truncate">Others</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @php
+                                                        $threat_name = $report_actions->first()->threat;
+                                                        $threat_level = $report_actions->first()->threat_level;
+                                                        $ip_address = $report_actions->first()->ip_address;
+                                                    @endphp
+                                                    @foreach ($report_actions as $report)
+                                                        <tr>
+                                                            @php
+                                                                if(!count((array)$report)){
+                                                                    continue;
+                                                                }
+                                                            @endphp
+                                                            <td>
+                                                                {{ $report->threat_id ?? $report->report_id }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $threat_name }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $threat_level }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $ip_address }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $report->action_type }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $report->admin_name }}
+                                                            </td>
+                                                            <td>
+                                                                {{ $report->timestamp }}
+                                                            </td>
+                                                            <td class="text-wrap text-break">
+                                                                <button data-bs-toggle="tooltip" class="btn btn-icon"
+                                                                    data-bs-placement="top"
+                                                                    title="Preview Additional Information"><i
+                                                                        class="bx bx-show bx-md" data-bs-toggle="modal"
+                                                                        data-bs-target="#basicModal2"></i></button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
 
-                                    <div class="card-body p-0">
+                                    {{-- <div class="card-body p-0">
                                         <div class="row">
                                             <div class="col-12">
                                                 <span class="fw-medium text-heading">Attachments:</span>
@@ -162,9 +216,9 @@
                                                 @endforeach
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> --}}
 
-                                    @if (count((array)$report_data->draft_data))
+                                    {{-- @if (count((array) $report_data->draft_data))
                                         <div class="card-body px-0">
                                             <div class="row">
                                                 <hr class="mt-0 mb-6">
@@ -179,7 +233,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    @endif
+                                    @endif --}}
                                 </div>
                             </div>
                             <!-- /Security Events -->
@@ -195,7 +249,8 @@
                                                     class="d-flex align-items-center justify-content-center text-nowrap"><i
                                                         class="bx bx-check bx-sm me-2"></i>Create Draft</span>
                                             </button>
-                                        @else
+                                        @endif
+                                        @if ($checkUser == 2 && $report_data->status != 'Under Review')
                                             <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="modal"
                                                 data-bs-target="#basicModal1">
                                                 <span
@@ -232,11 +287,11 @@
                                                     {{-- <input type="hidden" value="{{ $data->timestamp }}" id="threatTime"> --}}
                                                     {{-- <input type="hidden" value="{{ $data->threat }}" id="threatName"> --}}
                                                     {{-- <input type="hidden" value="{{ auth()->user()->username }}" name="username"> --}}
-                                                    <input type="hidden"
-                                                        value="{{ $report_data->threat_data->threat_id }}"
-                                                        name="event_id">
                                                     <input type="hidden" value="{{ $report_data->report_id }}"
                                                         name="incident_id">
+                                                    <input type="hidden"
+                                                        value="{{ $report_data->threat_data->threat_id }}"
+                                                        name="security_event_id">
                                                     <div class="mb-6">
                                                         <label for="invoice-to" class="form-label">Incident Title*</label>
                                                         <input type="text" class="form-control" id="timestampDetected"
@@ -255,19 +310,23 @@
                                                             style="height: 157px;" name="summary_info" required></textarea>
                                                     </div>
                                                     <div class="mb-6">
-                                                        <label for="invoice-to" class="form-label">Plans and Action about
+                                                        <label for="invoice-to" class="form-label">Actions to be taken
+                                                            about
                                                             the Incident*</label>
-                                                        <textarea class="form-control" placeholder="Include all the plan or action to be taken about the incident..."
-                                                            rows="2" style="height: 157px;" name="plan_info" required></textarea>
+                                                        <div class="inputGroup mb-3" id="actionsContainer">
+                                                            <input type="text" class="form-control w-100 mb-3"
+                                                                name="actions[]" placeholder="Input action here..."
+                                                                required />
+                                                        </div>
+                                                        <button type="button" class="btn btn-primary"
+                                                            onclick="addInput(actionsContainer)">
+                                                            Add More
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
-                                            <input type="hidden" name="admin_name"
-                                                value="{{ $report_data->admin_name }}">
-                                            <input type="hidden" name="report_id"
-                                                value="{{ $report_data->report_id }}">
                                             <button type="button" class="btn btn-outline-secondary"
                                                 data-bs-dismiss="modal">
                                                 Close
@@ -294,7 +353,8 @@
                                             <div class="row">
                                                 <div>
                                                     @csrf
-                                                    <span>Are you sure you want to take action about this incident in your company?</span>
+                                                    <span>Are you sure you want to take action about this incident in your
+                                                        company?</span>
                                                     <input type="hidden"
                                                         value="{{ $report_data->threat_data->threat_id }}"
                                                         name="event_id">
@@ -315,6 +375,60 @@
                                             <button type="submit" class="btn btn-danger">Confirm</button>
                                         </div>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal Create Draft -->
+                        <div class="modal fade" id="basicModal2" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="exampleModalLabel1">Additional Data</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        @if ($report_actions->get('old_data')->others ?? null)
+                                            <span class="d-block mb-3"> Cookies:
+                                                {{ $report_actions->get('old_data')->others->cookies }}
+                                            </span>
+                                        @endif
+                                        @if ($report_actions->get('old_data')->others ?? null)
+                                            <span class="d-block mb-3"> Device:
+                                                {{ $report_actions->get('old_data')->others->device }} </span>
+                                        @endif
+                                        @if ($report_actions->get('report_data')->attachment_path ?? null)
+                                            <div class="mb-3">
+                                                <span class="d-block"> Attachments: </span>
+                                                @if (count($report_actions->get('report_data')->attachment_path))
+                                                    @foreach ($report_actions->get('report_data')->attachment_path as $file)
+                                                        @php
+                                                            $fileParts = explode('/', $file);
+                                                            $lastPart = end($fileParts);
+                                                        @endphp
+                                                        <a class="d-block link-underline link-underline-opacity-0"
+                                                            href="{{ asset($file) }}"
+                                                            target="_blank">{{ $lastPart }}</a>
+                                                    @endforeach
+                                                @else
+                                                    No attachment available
+                                                @endif
+                                            </div>
+                                        @endif
+                                        {{-- {{dd()}} --}}
+                                        @if (count((array) $report_actions->get('draft_data')) ?? null)
+                                            <span class="d-block mb-2"> Summary of the Incident: </span>
+                                            <p class="">{{$report_actions->get('draft_data')->summary_info}}</p>
+                                        @endif
+                                        @if (count((array) $report_actions->get('draft_data')) ?? null)
+                                            <span class="d-block mb-2"> Actions: </span>
+                                            @foreach ($report_actions->get('draft_data')->actions as $action)
+                                                <span class="d-block mb-3">{{ $loop->index + 1 }}.
+                                                    {{ $action['action_title'] }}</span>
+                                            @endforeach
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>

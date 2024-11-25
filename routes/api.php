@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\api\ActionDocumentationController;
+use App\Http\Controllers\api\AllReportsController;
 use App\Http\Controllers\api\CompletedReportsController;
 use App\Http\Controllers\api\IncidentReportController;
 use App\Http\Controllers\api\ThreatDetectionController;
@@ -40,6 +41,9 @@ Route::prefix('/v1')->group(function(){
 
     // Completed Reports Api
     Route::get('/completed/reports', [CompletedReportsController::class, 'lists']);
+
+    // All Reports Api
+    Route::get('/reports/list', [AllReportsController::class, 'allReports']);
 
     // Logs
     Route::get('/logs/honeypot', [LogsController::class, 'honeypot_logs']);

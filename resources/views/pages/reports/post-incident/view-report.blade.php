@@ -141,19 +141,12 @@
                             <div class="col-12 invoice-actions">
                                 <div class="card">
                                     <div class="card-body">
-                                        @if ($post_assessment_report->status == 'Pending Audit')
+                                        @if ($checkUser == 2 && $post_assessment_report->status == 'Pending Audit')
                                             <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="modal"
                                                 data-bs-target="#basicModal">
                                                 <span
                                                     class="d-flex align-items-center justify-content-center text-nowrap"><i
                                                         class="bx bx-check bx-sm me-2"></i>Close Report</span>
-                                            </button>
-                                        @else
-                                            <button class="btn btn-primary d-grid w-100 mb-4" data-bs-toggle="modal"
-                                                data-bs-target="#basicModal2">
-                                                <span
-                                                    class="d-flex align-items-center justify-content-center text-nowrap"><i
-                                                        class="bx bx-check bx-sm me-2"></i>Create Post Assessment Report</span>
                                             </button>
                                         @endif
                                         <button class="btn btn-label-success d-grid w-100"

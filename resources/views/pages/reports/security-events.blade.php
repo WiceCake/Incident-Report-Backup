@@ -110,7 +110,6 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>Threat Level</th>
-                                            <th>Threat Level</th>
                                             <th>Events</th>
                                             <th>Ip Address</th>
                                             <th>Date Detected</th>

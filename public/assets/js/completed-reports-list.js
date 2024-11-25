@@ -1,14 +1,3 @@
-const options = {
-    timeZone: 'Asia/Manila',
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-};
-
 table = $('.invoice-list-table')
 reloadTable = table.DataTable({
     ajax: '/api/v1/completed/reports',
@@ -33,7 +22,7 @@ reloadTable = table.DataTable({
         targets: 0, // Threat Level
         orderable: !1,
         render: function (a, e, t, s) {
-            return '<a href="/incident-reports/' + t.complete_report_id	 + '">' + t.complete_report_id + "</a>";
+            return '<a href="/incident-reports/' + t.draft_id	 + '">' + t.draft_id + "</a>";
         }
     },
     {
@@ -50,7 +39,7 @@ reloadTable = table.DataTable({
         visible: true, // Make this visible
         orderable: false,
         render: function (a, e, t, s) {
-            return '<div class="d-flex align-items-center"><a href="/completed-reports/' + t.complete_report_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
+            return '<div class="d-flex align-items-center"><a href="/completed-reports/' + t.draft_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
         }
     }],
     order: [[2, "desc"]],

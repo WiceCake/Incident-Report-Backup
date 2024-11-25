@@ -6,9 +6,9 @@ reloadTable = table.DataTable({
         { data: 'threat_level' },     // Column 1
         { data: 'threat' },           // Column 2
         { data: 'ip_address' },       // Column 3
-        { data: 'threat_score' },     // Column 4
-        { data: 'timestamp' },        // Column 5
-        { data: 'action' },           // Column 6
+        { data: 'timestamp' },        // Column 4
+        { data: 'action' },           // Column 5
+        { data: 'threat_score' },           // Column 5
     ],
     processing: true,
     columnDefs: [{
@@ -45,24 +45,23 @@ reloadTable = table.DataTable({
             return '<div class="text-truncate" style="max-width: 200px;">' + t.threat + '</div>';
         }
     }, {
-        targets: 4,
-        visible: false,
-        searchable: false
-    }, {
-        targets: 5, // Date Detected
+        targets: 4, // Date Detected
         render: function (a, e, t, s) {
             const date = new Date(t.timestamp);
             return '<span class="d-none">' + moment(date).format("YYYYMMDD") + "</span>" + moment(date).format("MMM DD YYYY h:mm:ss a");
         }
     }, {
-        targets: 6, // Action
+        targets: 5, // Action
         visible: true, // Make this visible
         orderable: false,
         render: function (a, e, t, s) {
             return '<div class="d-flex align-items-center"><a href="/security-events/' + t.threat_id + '" data-bs-toggle="tooltip" class="btn btn-icon" data-bs-placement="top" title="Preview Invoice"><i class="bx bx-show bx-md"></i></a></div>';
         }
+    },{
+        targets: 6,
+        visible: false
     }],
-    order: [[4, "desc"]],
+    order: [[6, "desc"]],
     language: {
         sLengthMenu: "Show _MENU_",
         search: "",

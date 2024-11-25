@@ -18,28 +18,40 @@ class IncidentReportController extends Controller
     public function show($id)
     {
 
-        $getLogs = $this->findReport($id);
-        $threat_id = collect($getLogs['hits']['hits'])->first();
-        $threat_id = $threat_id['_source']['threat_id'];
+        $urls = [
+            "http://nginx_two/api/v1/threats/all/not_filtered"
+        ];
 
-        $old_data = $this->findData($id);
+        $getLogs = $this->findReport($id);
+        $threat = collect($getLogs['hits']['hits'])->first();
+        // dd($threat);
+        $threat_id = $threat['_source']['security_event_id'];
+
+        $checkUser = auth()->user()->id;
+
+
+        $old_data = $this->findData($urls[0], $threat_id);
 
         $report_data = collect($getLogs['hits']['hits'])->first();
+
+        // dd($report_data);
 
 
         $date = Carbon::parse($report_data['_source']['time_issued']); // Parse the date using Carbon
         $date = $date->format('M d Y h:i:s a');
 
         $report_id = $report_data['_id'];
-        $check_data = $this->findPending($report_id);
+        $check_data = $this->findPending($report_data['_source']['security_event_id']);
         $checkCount = count($check_data['hits']['hits'] ?? []);
         $status = $report_data['_source']['status'];
         $draftReport = (object)[];
 
-
         if ($checkCount) {
+            $draftReport->action_type = "Created Draft";
+            $draftReport->report_id =  $check_data['hits']['hits'][0]['_id'];
             $draftReport->summary_info = $check_data['hits']['hits'][0]['_source']['summary_info'];
-            $draftReport->plan_info = $check_data['hits']['hits'][0]['_source']['plan_info'];
+            $draftReport->admin_name = $check_data['hits']['hits'][0]['_source']['admin_name'];
+            $draftReport->actions = $check_data['hits']['hits'][0]['_source']['actions'];
             $draftReport->timestamp = $check_data['hits']['hits'][0]['_source']['timestamp'];
             $draftReport->timestamp = Carbon::parse($draftReport->timestamp, 'UTC');
             $draftReport->timestamp = $draftReport->timestamp->format('M d Y h:i:s a');
@@ -47,13 +59,20 @@ class IncidentReportController extends Controller
         // dd($report_data['_id']);
         // dd($this->findPending($report_data['_id']));
 
+
+        $old_data->admin_name = '';
+        $old_data->action_type = 'Detected';
+        $old_data->timestamp = Carbon::parse($old_data->timestamp);
+        $old_data->timestamp = $old_data->timestamp->format('M d Y h:i:s a');
+
         $report_data = (object)[
+            "action_type" => "Created Incident Report",
             "report_id" => $report_data['_id'],
-            "threat_name" => $report_data['_source']['threat_name'],
+            "threat_name" => $old_data->threat,
             "threat_type" => $report_data['_source']['threat_type'],
             "admin_name" => $report_data['_source']['admin_name'],
             "admin_username" => $report_data['_source']['admin_username'],
-            "time_issued" => $date,
+            "timestamp" => $date,
             "status" => $status,
             "attachment_path" => $report_data['_source']['attachment_path'],
             "threat_data" => $old_data,
@@ -61,8 +80,18 @@ class IncidentReportController extends Controller
         ];
         // dd($report_data);
 
+        $report_actions = collect(
+            [
+                'old_data' => $old_data,
+                'report_data' => $report_data,
+                'draft_data' => $draftReport,
+            ]
+        );
+        // dd($report_actions);
+        // dd($report_actions->get('incident_report'));
 
-        return view('pages.reports.incident-reports.view-report', compact('report_data'));
+
+        return view('pages.reports.incident-reports.view-report', compact('report_data', 'checkUser', 'report_actions'));
     }
 
     public function draft(Request $request)
@@ -71,29 +100,32 @@ class IncidentReportController extends Controller
             ->setHosts(['elasticsearch:9200'])
             ->build();
 
-        $carbonDate = Carbon::now();
+        $count = 0;
+        $actions_data = array_map(function ($data) use (&$count) {
+            $count += 1;
+            return [
+                "id" => $count,
+                "action_title" => $data,
+                "status" => "Not Completed",
+                "time_created" => now()->timezone('Asia/Manila')->modify('+8 hours')->toISOString(),
+                "time_completed" => null,
+                "admin_name" => auth()->user()->name,
+            ];
+        }, $request->actions);
 
-        // Change the timezone to Asia/Manila
-        $localDate = $carbonDate->timezone('Asia/Manila');
-
-        // dd($localDate);
 
         $logs = [
-            "admin_name" => $request->admin_name,
             "status" => "Pending Approval",
-            "incident_title" => $request->incident_title,
             "summary_info" => $request->summary_info,
-            "plan_info" => $request->plan_info,
-            "timestamp" => $localDate->modify('+8 hours')->toISOString(),
-            "data_ids" => [
-                "event_id" => $request->event_id,
-                "incident_id" => $request->incident_id,
-            ]
+            "actions" => $actions_data,
+            "admin_name" => auth()->user()->name,
+            "timestamp" => now()->timezone('Asia/Manila')->modify('+8 hours')->toISOString(),
+            "security_event_id" => $request->security_event_id
         ];
 
         // dd($request->incident_id);
         // dd();
-        $this->createDraft($request->event_id, $request->incident_id);
+        $this->createDraft($request->security_event_id, $request->incident_id);
         // dd('donw');
 
         $params = [
@@ -122,6 +154,7 @@ class IncidentReportController extends Controller
             ->build();
 
         try {
+            // dd($request->all());
 
             $updateParams = [
                 'index' => 'prefix-incident_reports', // Replace with your index name
@@ -139,7 +172,7 @@ class IncidentReportController extends Controller
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'data_ids.incident_id' => $request->incident_id // Replace with your field name and value
+                            'security_event_id' => $request->event_id // Replace with your field name and value
                         ]
                     ]
                 ]
@@ -148,6 +181,7 @@ class IncidentReportController extends Controller
             // Perform the search
             $draft = $client->search($params);
             $draftId = $draft['hits']['hits'][0]['_id'];
+
 
             $updateParams2 = [
                 'index' => 'prefix-draft_reports', // Replace with your index name
@@ -177,9 +211,8 @@ class IncidentReportController extends Controller
         }
     }
 
-    private function findData($id)
+    private function findData($url, $id)
     {
-        $url = "http://nginx_two/api/v1/threats/all/not_filtered";
 
         $response = Http::get($url);
 
@@ -206,7 +239,7 @@ class IncidentReportController extends Controller
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'threat_id' => $threat_id // Replace with your field name and value
+                            '_id' => $threat_id // Replace with your field name and value
                         ]
                     ]
                 ]
@@ -236,7 +269,7 @@ class IncidentReportController extends Controller
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'threat_id' => $threat_id // Replace with your field name and value
+                            'security_event_id' => $threat_id // Replace with your field name and value
                         ]
                     ]
                 ]
@@ -285,7 +318,7 @@ class IncidentReportController extends Controller
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'data_ids.incident_id' => $incident_id // Replace with your field name and value
+                            'security_event_id' => $incident_id // Replace with your field name and value
                         ]
                     ]
                 ]

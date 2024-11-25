@@ -463,7 +463,7 @@ class ThreatDetectionController extends Controller
                 'body'  => [
                     'query' => [
                         'match' => [
-                            'threat_id' => $threat_id // Replace with your field name and value
+                            'security_event_id' => $threat_id // Replace with your field name and value
                         ]
                     ]
                 ]
